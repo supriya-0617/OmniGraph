@@ -11,6 +11,8 @@ from app.auth.dependencies import get_current_account
 from app.auth.jwt import create_access_token
 from app.db.memory import MemoryGraphStore
 from app.main import app
+from app.routes.auth import login, register
+from app.routes.entities import _serialize as serialize_entity
 from app.routes.graph import get_graph
 from app.routes.entities import (
     create_post,
@@ -21,6 +23,8 @@ from app.routes.entities import (
     list_users,
     update_user,
 )
+from app.routes.auth import LoginRequest, RegisterRequest
+from app.routes.graph import _serialize as serialize_graph
 from app.routes.filters import get_graph_filters
 from app.schemas.filters import GraphFilters
 from app.schemas.entities import PostCreate, UserCreate, UserUpdate
@@ -41,6 +45,29 @@ class AuthenticationTests(unittest.TestCase):
             with self.subTest(credentials=credentials), self.assertRaises(HTTPException) as error:
                 get_current_account(credentials)
             self.assertEqual(error.exception.status_code, 401)
+
+    def test_configured_database_outage_does_not_fallback_to_memory_auth(self):
+        with patch("app.routes.auth.db.is_connected", return_value=False), patch(
+            "app.routes.auth.db.is_memory_mode", return_value=False
+        ):
+            for handler, request in (
+                (register, RegisterRequest(email="outage@example.org", password="secret123")),
+                (login, LoginRequest(email="outage@example.org", password="secret123")),
+            ):
+                with self.subTest(handler=handler.__name__), self.assertRaises(HTTPException) as error:
+                    handler(request)
+                self.assertEqual(error.exception.status_code, 503)
+
+
+class SerializationTests(unittest.TestCase):
+    def test_neo4j_style_temporal_values_are_serialized(self):
+        class Neo4jTemporal:
+            def isoformat(self):
+                return "2026-10-07T12:30:00+00:00"
+
+        value = Neo4jTemporal()
+        self.assertEqual(serialize_entity(value), "2026-10-07T12:30:00+00:00")
+        self.assertEqual(serialize_graph(value), "2026-10-07T12:30:00+00:00")
 
 
 class FilterTests(unittest.TestCase):
@@ -218,12 +245,18 @@ class RouteContractTests(unittest.TestCase):
         from app.routes.analytics import get_clusters, get_summary
         from app.routes.graph import get_graph
 
-        with patch("app.routes.graph.db.is_connected", return_value=False):
+        with patch("app.routes.graph.db.is_connected", return_value=False), patch(
+            "app.routes.graph.db.is_memory_mode", return_value=True
+        ):
             graph = get_graph(GraphFilters(min_density=3))
-        with patch("app.routes.analytics.db.is_connected", return_value=False):
+        with patch("app.routes.analytics.db.is_connected", return_value=False), patch(
+            "app.routes.analytics.db.is_memory_mode", return_value=True
+        ):
             summary = get_summary(GraphFilters())
             clusters = get_clusters(GraphFilters())
-        with patch("app.routes.entities.db.is_connected", return_value=False):
+        with patch("app.routes.entities.db.is_connected", return_value=False), patch(
+            "app.routes.entities.db.is_memory_mode", return_value=True
+        ):
             users = list_users(offset=0, limit=100)
 
         self.assertTrue(graph["nodes"])
@@ -235,7 +268,9 @@ class RouteContractTests(unittest.TestCase):
     def test_entity_crud_works_in_memory_without_neo4j(self):
         user_id = "memory-crud-user"
         post_id = "memory-crud-post"
-        with patch("app.routes.entities.db.is_connected", return_value=False):
+        with patch("app.routes.entities.db.is_connected", return_value=False), patch(
+            "app.routes.entities.db.is_memory_mode", return_value=True
+        ):
             create_user(UserCreate(id=user_id, handle="@memory_test", platform="X"))
             updated = update_user(user_id, UserUpdate(flagged=True))
             post = create_post(

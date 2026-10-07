@@ -47,8 +47,8 @@ def _serialize(value: Any) -> Any:
         return [_serialize(item) for item in value]
     if isinstance(value, datetime):
         return value.isoformat()
-    if hasattr(value, "iso_format"):
-        return value.iso_format()
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
     return value
 
 
@@ -191,25 +191,31 @@ def create_user(request: UserCreate):
             raise HTTPException(status_code=404, detail=str(error)) from error
     try:
         with db.session() as session:
-            if ip_id:
-                ip_record = session.run(
-                    "MATCH (ip:IPAddress {id: $id}) RETURN ip.id AS id", id=ip_id
+            transaction = session.begin_transaction()
+            try:
+                if ip_id:
+                    ip_record = transaction.run(
+                        "MATCH (ip:IPAddress {id: $id}) RETURN ip.id AS id", id=ip_id
+                    ).single()
+                    if not ip_record:
+                        raise HTTPException(status_code=404, detail="IPAddress not found")
+                record = transaction.run(
+                    "CREATE (n:User) SET n = $properties "
+                    "RETURN properties(n) AS item",
+                    properties=properties,
                 ).single()
-                if not ip_record:
-                    raise HTTPException(status_code=404, detail="IPAddress not found")
-            record = session.run(
-                "CREATE (n:User) SET n = $properties "
-                "RETURN properties(n) AS item",
-                properties=properties,
-            ).single()
-            if ip_id:
-                session.run(
-                    "MATCH (n:User {id: $user_id}), (ip:IPAddress {id: $ip_id}) "
-                    "MERGE (n)-[r:POSTED_FROM]->(ip) "
-                    "SET r.timestamp = n.created_at",
-                    user_id=request.id,
-                    ip_id=ip_id,
-                )
+                if ip_id:
+                    transaction.run(
+                        "MATCH (n:User {id: $user_id}), (ip:IPAddress {id: $ip_id}) "
+                        "MERGE (n)-[r:POSTED_FROM]->(ip) "
+                        "SET r.timestamp = n.created_at",
+                        user_id=request.id,
+                        ip_id=ip_id,
+                    )
+                transaction.commit()
+            except Exception:
+                transaction.rollback()
+                raise
     except ConstraintError as error:
         raise HTTPException(status_code=409, detail="User already exists") from error
     return _serialize(record["item"])
@@ -319,35 +325,41 @@ def create_post(request: PostCreate):
             raise HTTPException(status_code=404, detail=str(error)) from error
     try:
         with db.session() as session:
-            if request.author_id:
-                author = session.run(
-                    "MATCH (u:User {id: $id}) RETURN u.id AS id",
-                    id=request.author_id,
+            transaction = session.begin_transaction()
+            try:
+                if request.author_id:
+                    author = transaction.run(
+                        "MATCH (u:User {id: $id}) RETURN u.id AS id",
+                        id=request.author_id,
+                    ).single()
+                    if not author:
+                        raise HTTPException(status_code=404, detail="User not found")
+                record = transaction.run(
+                    "CREATE (n:Post) SET n = $properties "
+                    "RETURN properties(n) AS item",
+                    properties=properties,
                 ).single()
-                if not author:
-                    raise HTTPException(status_code=404, detail="User not found")
-            record = session.run(
-                "CREATE (n:Post) SET n = $properties "
-                "RETURN properties(n) AS item",
-                properties=properties,
-            ).single()
-            if request.author_id:
-                session.run(
-                    "MATCH (u:User {id: $user_id}), (p:Post {id: $post_id}) "
-                    "MERGE (u)-[r:POSTED]->(p) SET r.timestamp = p.timestamp",
-                    user_id=request.author_id,
-                    post_id=request.id,
-                )
-            if request.hashtags:
-                session.run(
-                    "MATCH (p:Post {id: $post_id}) "
-                    "UNWIND $tags AS tag "
-                    "MERGE (h:Hashtag {tag: tag}) "
-                    "ON CREATE SET h.id = randomUUID() "
-                    "MERGE (p)-[:MENTIONS]->(h)",
-                    post_id=request.id,
-                    tags=list(dict.fromkeys(request.hashtags)),
-                )
+                if request.author_id:
+                    transaction.run(
+                        "MATCH (u:User {id: $user_id}), (p:Post {id: $post_id}) "
+                        "MERGE (u)-[r:POSTED]->(p) SET r.timestamp = p.timestamp",
+                        user_id=request.author_id,
+                        post_id=request.id,
+                    )
+                if request.hashtags:
+                    transaction.run(
+                        "MATCH (p:Post {id: $post_id}) "
+                        "UNWIND $tags AS tag "
+                        "MERGE (h:Hashtag {tag: tag}) "
+                        "ON CREATE SET h.id = randomUUID() "
+                        "MERGE (p)-[:MENTIONS]->(h)",
+                        post_id=request.id,
+                        tags=list(dict.fromkeys(request.hashtags)),
+                    )
+                transaction.commit()
+            except Exception:
+                transaction.rollback()
+                raise
     except ConstraintError as error:
         raise HTTPException(status_code=409, detail="Post already exists") from error
     return _serialize(record["item"])

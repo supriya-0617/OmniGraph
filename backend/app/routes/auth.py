@@ -10,7 +10,7 @@ logger = logging.getLogger("omnigraph.routes.auth")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# In-memory user store fallback if Neo4j database is unreachable
+# In-memory user store for explicit database-free development mode.
 _in_memory_accounts = {}
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
@@ -22,7 +22,7 @@ def register(req: RegisterRequest):
 
     if db.is_connected():
         try:
-            with next(db.get_session()) as session:
+            with db.session() as session:
                 # Check if email exists
                 check_result = session.run(
                     "MATCH (a:Account {email: $email}) RETURN a.id AS id",
@@ -66,7 +66,13 @@ def register(req: RegisterRequest):
                 detail=f"Database error during registration: {str(e)}"
             )
 
-    # Fallback when Neo4j is not connected
+    if not db.is_memory_mode():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Configured graph database is unavailable",
+        )
+
+    # Fallback is limited to explicit database-free development mode.
     if email in _in_memory_accounts:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -89,7 +95,7 @@ def login(req: LoginRequest):
 
     if db.is_connected():
         try:
-            with next(db.get_session()) as session:
+            with db.session() as session:
                 result = session.run(
                     "MATCH (a:Account {email: $email}) RETURN a.id AS id, a.email AS email, a.password_hash AS password_hash",
                     email=email
@@ -122,7 +128,13 @@ def login(req: LoginRequest):
                 detail=f"Database error during login: {str(e)}"
             )
 
-    # Fallback when Neo4j is not connected
+    if not db.is_memory_mode():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Configured graph database is unavailable",
+        )
+
+    # Fallback is limited to explicit database-free development mode.
     user = _in_memory_accounts.get(email)
     if not user or not verify_password(req.password, user["password_hash"]):
         raise HTTPException(

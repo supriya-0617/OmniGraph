@@ -24,8 +24,8 @@ def _serialize(value: Any) -> Any:
         return [_serialize(item) for item in value]
     if isinstance(value, datetime):
         return value.isoformat()
-    if hasattr(value, "iso_format"):
-        return value.iso_format()
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
     return value
 
 

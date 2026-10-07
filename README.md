@@ -46,8 +46,8 @@ See [`AGENTS.md`](AGENTS.md) for conventions if you're using an AI coding assist
 ## Implementation Status
 
 - **Phase 1:** UI/auth scaffolding and login/register complete.
-- **Phase 2:** entity APIs, JWT-protected graph/analytics APIs, deterministic 200-user/2,000-post in-memory fixture, and dashboard API integration complete for database-free development.
-- **Still deferred:** persistent Neo4j connection and Neo4j-backed verification; GraphRAG is Phase 3.
+- **Phase 2:** entity APIs, JWT-protected graph/analytics APIs, deterministic 200-user/2,000-post in-memory fixture, dashboard API integration, fail-closed Neo4j outage handling, transactional Neo4j user/post creation, and temporal serialization hardening are complete for database-free development.
+- **Still deferred:** GraphRAG is Phase 3. Live Neo4j Aura connectivity and protected API verification are complete; the Aura seed currently contains the smaller demo dataset while the 200-user/2,000-post fixture remains available in memory mode.
 
 ## Getting Started
 
