@@ -27,9 +27,9 @@
 - [x] JWT auth enforced on entity, graph, and analytics routes.
 - [x] Deterministic in-memory development dataset includes 200 users, 2,000 posts, and deliberate coordination scenarios.
 - [x] Frontend dashboard is integrated with graph and analytics APIs; filters refresh all panels.
-- [ ] Configure and verify persistent Neo4j connectivity and Neo4j-backed CRUD/analytics (deferred; current development mode is in-memory).
+- [x] Configure and verify persistent Neo4j connectivity and Neo4j-backed CRUD/analytics.
 
-**Status:** Phase 2's API and frontend integration are complete in database-free development mode. The original course milestone is not fully complete until persistent Neo4j connectivity is configured and verified. The GraphRAG panel is intentionally deferred to Phase 3.
+**Status:** Phase 2 is complete for the verified Aura-backed deployment path. Auth fails closed when Neo4j is configured but unavailable, Neo4j-backed entity writes use transactions, Neo4j temporal values are serialized safely, and live Aura verification covers health, authentication, entity reads, graph reads, and analytics. The deterministic 200-user/2,000-post dataset remains the database-free development fixture; the Aura seed currently contains the smaller demo dataset. The GraphRAG panel is intentionally deferred to Phase 3.
 
 ### Phase 3 target (leading into 10-11-2026 — AI + analytics + polish)
 - [ ] Finalize LLM provider decision (currently leaning Gemini) and implement `llm_client.py` adapter.

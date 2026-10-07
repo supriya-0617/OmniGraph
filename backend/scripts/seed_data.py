@@ -126,7 +126,7 @@ SAMPLE_POSTS = [
     }
 ]
 
-def run_seed():
+def run_seed() -> bool:
     uri = settings.NEO4J_URI
     user = settings.NEO4J_USER
     password = settings.NEO4J_PASSWORD
@@ -136,16 +136,16 @@ def run_seed():
         driver = GraphDatabase.driver(uri, auth=(user, password))
         driver.verify_connectivity()
     except Exception as e:
-        logger.warning(f"Could not connect to Neo4j instance at {uri}: {e}")
+        logger.warning(f"Could not authenticate or connect to Neo4j instance at {uri}: {e}")
         logger.info("==========================================================================")
-        logger.info("NOTE: Neo4j database is currently offline or not configured in .env.")
+        logger.info("NOTE: Check the Aura instance status and the NEO4J_USER/NEO4J_PASSWORD values in backend/.env.")
         logger.info("To seed live Neo4j Aura cloud database:")
         logger.info("1. Copy .env.example to .env")
         logger.info("2. Set NEO4J_URI=neo4j+s://<your-aura-instance>.databases.neo4j.io")
         logger.info("3. Set NEO4J_USER=neo4j and NEO4J_PASSWORD=<your-password>")
         logger.info("4. Re-run: python scripts/seed_data.py")
         logger.info("==========================================================================")
-        return
+        return False
 
     with driver.session() as session:
         # Step 1: Create Constraints & Indexes
@@ -237,6 +237,7 @@ def run_seed():
 
     driver.close()
     logger.info("OmniGraph Neo4j data seed completed successfully!")
+    return True
 
 if __name__ == "__main__":
-    run_seed()
+    raise SystemExit(0 if run_seed() else 1)
