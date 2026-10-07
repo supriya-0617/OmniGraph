@@ -3,9 +3,9 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Neo4j Settings
-    NEO4J_URI: str = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    NEO4J_URI: str = os.getenv("NEO4J_URI", "")
     NEO4J_USER: str = os.getenv("NEO4J_USER", "neo4j")
-    NEO4J_PASSWORD: str = os.getenv("NEO4J_PASSWORD", "password")
+    NEO4J_PASSWORD: str = os.getenv("NEO4J_PASSWORD", "")
 
     # Auth Settings
     JWT_SECRET: str = os.getenv("JWT_SECRET", "super-secret-jwt-key-omnigraph-phase1-dev")

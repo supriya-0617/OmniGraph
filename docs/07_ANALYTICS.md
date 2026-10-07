@@ -15,6 +15,8 @@ Satisfies the rubric's "Data Analytics module/dashboard with filters" requiremen
 
 All filters combine (AND) and are sent as query params to both `/graph` and `/analytics`.
 
+For Phase 2, `min_density` is implemented as a minimum coordinated-group size: the number of distinct users sharing an IP and hashtag within a one-hour posting window. It ranges from 1 to 10 to match the dashboard slider. Values above 1 restrict the graph to posts in matching groups.
+
 ## 3. Metrics / KPIs
 
 | Metric | Definition | Computed via |
@@ -25,6 +27,8 @@ All filters combine (AND) and are sent as query params to both `/graph` and `/an
 | Posts over time | time-bucketed post counts | Cypher grouped by day/hour |
 | Top hashtags | count of posts per hashtag in filter | Cypher `count()` grouped by hashtag |
 | Suspected coordinated clusters | groups of users sharing IP + tight posting-time window (see query in `04_GRAPH_SCHEMA.md`) | Cypher, surfaced as a table |
+
+Cluster rows group matching user pairs by IP and hashtag. `time_window_minutes` is the span between the earliest and latest matched posts. `risk_score` is a bounded ranking heuristic: `min(1, 0.25 + 0.1 * min(user_count, 5) + 0.25 * average_post_severity)`. It is not a calibrated probability.
 
 > Note on APOC: Neo4j Aura free tier has limited/no APOC procedure support depending on tier — verify what's available before committing to APOC-based centrality; fall back to client-side Cytoscape.js centrality functions (it has built-in degree/betweenness/closeness) if needed.
 

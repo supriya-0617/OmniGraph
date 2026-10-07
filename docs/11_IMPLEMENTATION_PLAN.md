@@ -21,11 +21,15 @@
 - [ ] Seed script v1 (`05_DATA_PIPELINE.md`) producing a small sample dataset in Neo4j.
 
 ### Phase 2 target (09-10-2026 — full backend)
-- [ ] `/entities` CRUD complete for all node types.
-- [ ] `/graph` endpoint returning filtered nodes/edges; Cytoscape.js canvas rendering real data.
-- [ ] `/analytics/summary` and `/analytics/clusters` implemented; Recharts panels wired up.
-- [ ] JWT auth enforced on all non-auth routes.
-- [ ] Full seed dataset (`05_DATA_PIPELINE.md` §5 volume guidance) including deliberate coordinated-cluster scenarios.
+- [x] `/entities` CRUD complete for all node types.
+- [x] `/graph` returns filtered nodes/edges; Cytoscape.js renders API data.
+- [x] `/analytics/summary` and `/analytics/clusters` implemented; Recharts panels use API results.
+- [x] JWT auth enforced on entity, graph, and analytics routes.
+- [x] Deterministic in-memory development dataset includes 200 users, 2,000 posts, and deliberate coordination scenarios.
+- [x] Frontend dashboard is integrated with graph and analytics APIs; filters refresh all panels.
+- [ ] Configure and verify persistent Neo4j connectivity and Neo4j-backed CRUD/analytics (deferred; current development mode is in-memory).
+
+**Status:** Phase 2's API and frontend integration are complete in database-free development mode. The original course milestone is not fully complete until persistent Neo4j connectivity is configured and verified. The GraphRAG panel is intentionally deferred to Phase 3.
 
 ### Phase 3 target (leading into 10-11-2026 — AI + analytics + polish)
 - [ ] Finalize LLM provider decision (currently leaning Gemini) and implement `llm_client.py` adapter.

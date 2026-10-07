@@ -1,4 +1,5 @@
 import logging
+from contextlib import contextmanager
 from typing import Optional, Generator
 from neo4j import GraphDatabase, Driver, Session
 from app.config import settings
@@ -38,6 +39,9 @@ class Neo4jDatabase:
     def is_connected(self) -> bool:
         return self._connected
 
+    def is_memory_mode(self) -> bool:
+        return not self._connected and not settings.NEO4J_URI
+
     def get_session(self) -> Generator[Session, None, None]:
         """Provide a Neo4j session context manager."""
         if not self._driver or not self._connected:
@@ -47,5 +51,12 @@ class Neo4jDatabase:
             yield session
         finally:
             session.close()
+
+    @contextmanager
+    def session(self):
+        if not self._driver or not self._connected:
+            raise RuntimeError("Neo4j database is not connected.")
+        with self._driver.session() as session:
+            yield session
 
 db = Neo4jDatabase()

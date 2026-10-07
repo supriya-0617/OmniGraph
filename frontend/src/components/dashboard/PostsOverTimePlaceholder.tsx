@@ -2,30 +2,32 @@ import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity } from 'lucide-react';
 
-const sampleTimeSeries = [
-  { time: 'Sep 10', posts: 12 },
-  { time: 'Sep 11', posts: 18 },
-  { time: 'Sep 12', posts: 45 },
-  { time: 'Sep 13', posts: 82 },
-  { time: 'Sep 14', posts: 64 },
-  { time: 'Sep 15', posts: 38 },
-  { time: 'Sep 16', posts: 52 },
-];
+interface Props {
+  data: Array<{ bucket: string; count: number }>;
+}
 
-export const PostsOverTimePlaceholder: React.FC = () => {
+export const PostsOverTimePlaceholder: React.FC<Props> = ({ data }) => {
+  const chartData = data.map((item) => ({
+    time: new Date(`${item.bucket}T00:00:00`).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    }),
+    posts: item.count,
+  }));
+
   return (
     <div className="og-card flex flex-col h-full">
       <div className="og-card-header py-2.5">
         <div className="og-section-title">
           <Activity className="w-4 h-4 text-cyan-400 shrink-0" strokeWidth={1.75} />
-          <span>Amplification Stream Over Time</span>
+          <span>Posts Over Time</span>
         </div>
-        <span className="og-badge-muted">Sample time series</span>
+        <span className="og-badge-muted">Filtered results</span>
       </div>
 
       <div className="w-full flex-1 min-h-[140px] px-2 pb-3 pt-1">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={sampleTimeSeries} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+        {chartData.length ? <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
             <defs>
               <linearGradient id="colorPosts" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.75} />
@@ -53,7 +55,7 @@ export const PostsOverTimePlaceholder: React.FC = () => {
               fill="url(#colorPosts)"
             />
           </AreaChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer> : <div className="h-full flex items-center justify-center text-xs text-slate-500 font-mono">No posts in this date range.</div>}
       </div>
     </div>
   );

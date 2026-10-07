@@ -1,6 +1,6 @@
 # OmniGraph
 
-**OSINT & Disinformation Network Analyzer using GraphRAG**
+**OSINT & Disinformation Network Analyzer**
 
 Full Stack Development Project — Course 24CIE554
 
@@ -11,10 +11,10 @@ Full Stack Development Project — Course 24CIE554
 
 ## What it does
 
-OmniGraph maps simulated social-media activity (users, posts, hashtags, IP addresses) into a graph database and gives an investigator two tools to make sense of it:
+OmniGraph maps simulated social-media activity (users, posts, hashtags, IP addresses) into an explorable graph and gives an investigator a filtered graph and analytics dashboard. A GraphRAG forensic analyst is planned for a later phase:
 
-1. **An analytics dashboard** — filter the network by threat level, time window, platform, or interaction density; see centrality/frequency metrics as charts and KPIs.
-2. **An AI Forensic Analyst (GraphRAG)** — ask natural-language questions about whatever sub-graph is currently filtered; the AI reasons over both the graph structure and the post text to answer things like "where did this narrative originate?" or "which accounts look coordinated?"
+- **Current:** filter the network by severity, time window, platform, or coordination density; inspect accounts, posts, hashtags, and suspected clusters.
+- **Planned:** ask natural-language questions about the currently filtered sub-graph using an AI Forensic Analyst.
 
 ## Tech stack
 
@@ -43,29 +43,33 @@ Full rationale: [`docs/03_TECH_STACK.md`](docs/03_TECH_STACK.md)
 
 See [`AGENTS.md`](AGENTS.md) for conventions if you're using an AI coding assistant on this repo.
 
-## Phase 1 Implementation Status: COMPLETE ✅
+## Implementation Status
 
-- **Frontend:** React + Vite + TypeScript, React Router DOM, Cytoscape.js canvas workspace, Recharts analytical placeholders, FilterContext & AuthContext, Login & Register forms with client validation.
-- **Backend:** FastAPI, Neo4j database driver connection layer with fallback, bcrypt password hashing, JWT authentication (`/auth/register`, `/auth/login`), CORS configured.
-- **Seed Script:** Idempotent Neo4j seed script (`scripts/seed_data.py`) for OSINT graph schema.
+- **Phase 1:** UI/auth scaffolding and login/register complete.
+- **Phase 2:** entity APIs, JWT-protected graph/analytics APIs, deterministic 200-user/2,000-post in-memory fixture, and dashboard API integration complete for database-free development.
+- **Still deferred:** persistent Neo4j connection and Neo4j-backed verification; GraphRAG is Phase 3.
 
 ## Getting Started
 
 ### 1. Setup & Run Backend
 
+Neo4j is optional for local development. With `NEO4J_URI` unset, the backend starts with an in-memory demo graph and supports auth, entity CRUD, graph reads, and analytics. Data created in this mode is lost when the backend stops.
+
 ```bash
 cd backend
-python -m venv venv
+python3 -m venv .venv
 # On Windows:
-.\venv\Scripts\activate
+.\.venv\Scripts\activate
 # On Linux/macOS:
-source venv/bin/activate
+source .venv/bin/activate
 
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
 ### 2. Seed Database (Optional)
+
+This step is only needed when Neo4j is configured; the in-memory demo data loads automatically.
 
 ```bash
 cd backend
@@ -84,8 +88,15 @@ Visit `http://localhost:5173` to open the analyst workstation.
 
 ## Environment Variables
 
-See `.env.example` in root and `backend/.env.example`.
-Key variables: `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `JWT_SECRET`, `LLM_API_KEY`.
+See `.env.example` in root and `backend/.env.example`. Neo4j credentials (`NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`) are optional for the current in-memory development mode. `JWT_SECRET` can be set for a stable local signing key. `LLM_API_KEY` is not needed until the AI integration phase.
+
+### Backend Tests
+
+```bash
+cd backend
+source .venv/bin/activate
+python -m unittest discover -s . -p 'test*.py' -v
+```
 
 ## Milestones
 

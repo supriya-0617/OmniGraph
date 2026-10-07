@@ -20,7 +20,7 @@ export const Header: React.FC = () => {
               <h1 className="font-bold text-lg tracking-tight text-white font-mono leading-none">
                 OMNIGRAPH
               </h1>
-              <span className="og-badge-cyan shrink-0">Phase 1 OSINT</span>
+              <span className="og-badge-cyan shrink-0">Phase 2 OSINT</span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5 truncate">
               Disinformation &amp; Network Analyzer
@@ -33,13 +33,13 @@ export const Header: React.FC = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-800">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" aria-hidden />
             <span>
-              Engine: <span className="text-slate-200">FastAPI &amp; Cypher</span>
+              API: <span className="text-slate-200">FastAPI</span>
             </span>
           </div>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-800">
             <Cpu className="w-3.5 h-3.5 text-cyan-400 shrink-0" strokeWidth={1.75} />
             <span>
-              GraphRAG: <span className="text-cyan-300">Ready</span>
+              GraphRAG: <span className="text-amber-300">Planned</span>
             </span>
           </div>
         </div>

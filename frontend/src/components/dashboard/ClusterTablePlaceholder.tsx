@@ -3,27 +3,9 @@ import { CoordinatedCluster } from '../../types/analytics';
 import { ShieldAlert, Eye } from 'lucide-react';
 
 interface Props {
+  clusters: CoordinatedCluster[];
   onFocusCluster?: (cluster: CoordinatedCluster) => void;
 }
-
-const sampleClusters: CoordinatedCluster[] = [
-  {
-    id: 'c_01',
-    cluster_ip: '192.0.2.100',
-    user_handles: ['@shadow_bot01', '@shadow_bot02', '@shadow_bot03'],
-    hashtag: '#BotnetDetected',
-    time_window_minutes: 5,
-    risk_score: 0.95,
-  },
-  {
-    id: 'c_02',
-    cluster_ip: '192.0.2.105',
-    user_handles: ['@echo_chamber99', '@narrative_node'],
-    hashtag: '#DisinfoCampaign',
-    time_window_minutes: 12,
-    risk_score: 0.82,
-  },
-];
 
 function riskBadgeClass(score: number): string {
   if (score >= 0.9) return 'bg-rose-950/80 text-rose-200 border-rose-700/60';
@@ -31,7 +13,7 @@ function riskBadgeClass(score: number): string {
   return 'bg-slate-800 text-slate-300 border-slate-600';
 }
 
-export const ClusterTablePlaceholder: React.FC<Props> = ({ onFocusCluster }) => {
+export const ClusterTablePlaceholder: React.FC<Props> = ({ clusters, onFocusCluster }) => {
   return (
     <div className="og-card flex flex-col h-full min-h-[280px]">
       <div className="og-card-header">
@@ -39,12 +21,12 @@ export const ClusterTablePlaceholder: React.FC<Props> = ({ onFocusCluster }) => 
           <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" strokeWidth={1.75} />
           <span>Suspected Coordinated Clusters</span>
         </div>
-        <span className="og-badge-danger">{sampleClusters.length} active signals</span>
+        <span className="og-badge-danger">{clusters.length} active signals</span>
       </div>
 
       <div className="p-4 pt-2 flex-1 flex flex-col">
         <p className="text-[10px] font-mono text-slate-500 mb-3">
-          Demo cluster table · Phase 2 <code className="text-slate-400">/analytics/clusters</code>
+          Shared IP, hashtag, and posting-window signals
         </p>
         <div className="og-table-wrap flex-1">
           <table className="og-table">
@@ -58,7 +40,7 @@ export const ClusterTablePlaceholder: React.FC<Props> = ({ onFocusCluster }) => 
               </tr>
             </thead>
             <tbody>
-              {sampleClusters.map((cluster) => (
+              {clusters.map((cluster) => (
                 <tr key={cluster.id}>
                   <td className="text-cyan-400 font-semibold whitespace-nowrap">{cluster.cluster_ip}</td>
                   <td>
@@ -95,6 +77,9 @@ export const ClusterTablePlaceholder: React.FC<Props> = ({ onFocusCluster }) => 
                   </td>
                 </tr>
               ))}
+              {!clusters.length && (
+                <tr><td colSpan={5} className="py-8 text-center text-slate-500">No coordinated clusters match these filters.</td></tr>
+              )}
             </tbody>
           </table>
         </div>

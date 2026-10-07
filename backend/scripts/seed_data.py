@@ -17,7 +17,9 @@ CONSTRAINTS_AND_INDEXES = [
     "CREATE INDEX post_severity IF NOT EXISTS FOR (p:Post) ON (p.severity);",
     "CREATE CONSTRAINT user_id_unique IF NOT EXISTS FOR (u:User) REQUIRE u.id IS UNIQUE;",
     "CREATE CONSTRAINT post_id_unique IF NOT EXISTS FOR (p:Post) REQUIRE p.id IS UNIQUE;",
+    "CREATE CONSTRAINT hashtag_id_unique IF NOT EXISTS FOR (h:Hashtag) REQUIRE h.id IS UNIQUE;",
     "CREATE CONSTRAINT hashtag_tag_unique IF NOT EXISTS FOR (h:Hashtag) REQUIRE h.tag IS UNIQUE;",
+    "CREATE CONSTRAINT ip_id_unique IF NOT EXISTS FOR (ip:IPAddress) REQUIRE ip.id IS UNIQUE;",
     "CREATE CONSTRAINT account_email_unique IF NOT EXISTS FOR (a:Account) REQUIRE a.email IS UNIQUE;"
 ]
 
@@ -234,7 +236,7 @@ def run_seed():
         """)
 
     driver.close()
-    logger.info("Phase 1 Neo4j data seed completed successfully!")
+    logger.info("OmniGraph Neo4j data seed completed successfully!")
 
 if __name__ == "__main__":
     run_seed()

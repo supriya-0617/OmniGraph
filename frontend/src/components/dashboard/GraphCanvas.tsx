@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import cytoscape from 'cytoscape';
 import { useFilters } from '../../context/FilterContext';
-import { GraphNode } from '../../types/graph';
+import { GraphData, GraphNode } from '../../types/graph';
 import { Network, RefreshCw, Info } from 'lucide-react';
 
 interface Props {
   onSelectNode: (node: GraphNode | null) => void;
   highlightNodeId?: string | null;
+  graphData?: GraphData | null;
 }
 
 const LEGEND_ITEMS = [
@@ -17,7 +18,19 @@ const LEGEND_ITEMS = [
   { label: 'IP Address', className: 'rounded-sm bg-emerald-500' },
 ];
 
-export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId }) => {
+interface CytoscapeElementData {
+  id?: string;
+  source?: string;
+  target?: string;
+  label?: string;
+  type?: string;
+  severity?: number;
+  flagged?: boolean;
+  text?: string;
+  [key: string]: any;
+}
+
+export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, graphData }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const { filters } = useFilters();
@@ -26,7 +39,7 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId }) 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const elements = [
+    const sampleElements: Array<{ data: CytoscapeElementData }> = [
       { data: { id: 'u_001', label: '@alpha_intel', type: 'User', flagged: false, severity: 0.2 } },
       { data: { id: 'u_004', label: '@shadow_bot01', type: 'User', flagged: true, severity: 0.95 } },
       { data: { id: 'u_005', label: '@shadow_bot02', type: 'User', flagged: true, severity: 0.92 } },
@@ -48,6 +61,31 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId }) 
       { data: { source: 'u_001', target: 'p_001', label: 'POSTED' } },
       { data: { source: 'p_001', target: 'h_001', label: 'MENTIONS' } },
     ];
+    const elements: Array<{ data: CytoscapeElementData }> = graphData === undefined
+      ? sampleElements
+      : [
+          ...(graphData?.nodes ?? []).map((node) => ({
+            data: {
+              ...node.props,
+              id: node.id,
+              label:
+                node.props.handle ??
+                node.props.tag ??
+                node.props.address ??
+                (node.label === 'Post' ? `Post ${node.id}` : node.id),
+              type: node.label,
+            },
+          })),
+          ...(graphData?.edges ?? []).map((edge, index) => ({
+            data: {
+              id: `${edge.source}-${edge.type}-${edge.target}-${index}`,
+              source: edge.source,
+              target: edge.target,
+              label: edge.type,
+              timestamp: edge.timestamp,
+            },
+          })),
+        ];
 
     const filteredNodes = elements.filter((el) => {
       if (el.data.source || el.data.target) return false;
@@ -68,6 +106,17 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId }) 
     ];
 
     setIsEmpty(filteredElements.length === 0);
+
+    const layout = graphData === undefined
+      ? { name: 'cose', animate: false, padding: 50, numIter: 150 }
+      : {
+          name: 'concentric',
+          animate: false,
+          padding: 50,
+          concentric: (node: cytoscape.NodeSingular) =>
+            (node.data('flagged') ? 100 : 0) + node.degree(),
+          levelWidth: () => 2,
+        };
 
     const cy = cytoscape({
       container: containerRef.current,
@@ -139,7 +188,7 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId }) 
           },
         },
       ],
-      layout: { name: 'cose', animate: false, padding: 50 },
+      layout,
     });
 
     cy.on('tap', 'node', (evt) => {
@@ -158,12 +207,18 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId }) 
     });
 
     cyRef.current = cy;
+    const resizeObserver = new ResizeObserver(() => {
+      cy.resize();
+      cy.fit(undefined, 40);
+    });
+    resizeObserver.observe(containerRef.current);
 
     return () => {
+      resizeObserver.disconnect();
       cy.destroy();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- onSelectNode is stable enough; avoid re-init on parent re-render
-  }, [filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- callback identity should not recreate the graph
+  }, [filters, graphData]);
 
   useEffect(() => {
     if (cyRef.current && highlightNodeId) {
@@ -181,7 +236,17 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId }) 
 
   const handleResetLayout = () => {
     if (cyRef.current) {
-      cyRef.current.layout({ name: 'cose', animate: true } as cytoscape.LayoutOptions).run();
+      const layoutOptions: cytoscape.LayoutOptions =
+        graphData === undefined
+          ? { name: 'cose', animate: true, numIter: 150 }
+          : {
+              name: 'concentric',
+              animate: true,
+              concentric: (node: cytoscape.NodeSingular) =>
+                (node.data('flagged') ? 100 : 0) + node.degree(),
+              levelWidth: () => 2,
+            };
+      cyRef.current.layout(layoutOptions).run();
       cyRef.current.fit(undefined, 40);
     }
   };
@@ -196,7 +261,9 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId }) 
           <span className="text-slate-400">Interactive Node Canvas</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="og-badge-muted hidden md:inline-flex">Demo graph · filter by severity</span>
+          <span className="og-badge-muted hidden md:inline-flex">
+            {graphData === undefined ? 'Demo graph · sample data' : 'Filtered graph results'}
+          </span>
           <button type="button" onClick={handleResetLayout} className="og-btn-ghost" title="Reset Graph Layout">
             <RefreshCw className="w-3 h-3 text-cyan-400 shrink-0" strokeWidth={1.75} />
             <span>Reset Layout</span>
@@ -216,7 +283,7 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId }) 
             No Graph Data In Active Filter
           </h3>
           <p className="text-xs text-slate-400 max-w-sm mt-2 leading-relaxed">
-            Adjust the severity slider or platform controls in Analyst Controls to expand the sub-graph view.
+            Adjust the active filters to expand the sub-graph view.
           </p>
         </div>
       )}

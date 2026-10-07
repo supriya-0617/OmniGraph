@@ -101,6 +101,20 @@ CREATE INDEX post_timestamp IF NOT EXISTS FOR (p:Post) ON (p.timestamp);
 CREATE INDEX post_severity IF NOT EXISTS FOR (p:Post) ON (p.severity);
 CREATE CONSTRAINT user_id_unique IF NOT EXISTS FOR (u:User) REQUIRE u.id IS UNIQUE;
 CREATE CONSTRAINT post_id_unique IF NOT EXISTS FOR (p:Post) REQUIRE p.id IS UNIQUE;
+CREATE CONSTRAINT hashtag_id_unique IF NOT EXISTS FOR (h:Hashtag) REQUIRE h.id IS UNIQUE;
 CREATE CONSTRAINT hashtag_tag_unique IF NOT EXISTS FOR (h:Hashtag) REQUIRE h.tag IS UNIQUE;
+CREATE CONSTRAINT ip_id_unique IF NOT EXISTS FOR (ip:IPAddress) REQUIRE ip.id IS UNIQUE;
 CREATE CONSTRAINT account_email_unique IF NOT EXISTS FOR (a:Account) REQUIRE a.email IS UNIQUE;
 ```
+
+Entity writes use parameterized `CREATE`/`SET` queries with labels fixed by the route. Creating a post can add its authorship and hashtag relationships in the same request:
+
+```cypher
+CREATE (p:Post) SET p = $properties
+WITH p
+MATCH (u:User {id: $author_id})
+MERGE (u)-[r:POSTED]->(p)
+SET r.timestamp = p.timestamp
+```
+
+Hashtags are matched or created by their unique `tag`, then linked with `(:Post)-[:MENTIONS]->(:Hashtag)`. User IP changes replace the user's `POSTED_FROM` relationship and keep its `ip_hash` property synchronized. The API query implementations are in `backend/app/routes/entities.py`.

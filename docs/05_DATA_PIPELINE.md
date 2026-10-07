@@ -34,3 +34,7 @@ If the team wants to demo something feeling closer to a live feed:
 ## 5. Data volume guidance
 
 Keep the total seeded graph in the low thousands of nodes (e.g., 200–500 users, 2,000–5,000 posts) — enough to make filtering and clustering meaningful without stressing the free-tier Aura instance or the Cytoscape.js canvas.
+
+## 6. Database-free development fixture
+
+When `NEO4J_URI` is unset, the backend uses a deterministic in-memory graph fixture instead of connecting to a database. It generates 200 users and 2,000 posts across simulated platforms, with shared-IP coordination bursts and representative reply, retweet, follow, mention, and tagged-user relationships. This fixture is loaded at process startup, is reproducible, and is discarded when the process stops. It supports local Phase 2 API and dashboard work; it does not replace persistent Neo4j setup for the course milestone.

@@ -10,7 +10,9 @@ export interface AnalyticsSummary {
 export interface CoordinatedCluster {
   id: string;
   cluster_ip: string;
+  user_ids: string[];
   user_handles: string[];
+  post_ids: string[];
   hashtag: string;
   time_window_minutes: number;
   risk_score: number;

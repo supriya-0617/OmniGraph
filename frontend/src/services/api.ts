@@ -1,4 +1,6 @@
 import { LoginResponse, RegisterResponse } from '../types/auth';
+import { AnalyticsSummary, CoordinatedCluster } from '../types/analytics';
+import { FilterState, GraphData } from '../types/graph';
 
 /**
  * In dev, default to same-origin requests so Vite's `/auth` proxy reaches FastAPI (no CORS).
@@ -85,4 +87,60 @@ export async function checkHealthApi(): Promise<unknown | null> {
   } catch {
     return null;
   }
+}
+
+function buildFilterQuery(filters: FilterState): string {
+  const params = new URLSearchParams({
+    from: filters.dateFrom,
+    to: filters.dateTo,
+    platform: filters.platform,
+    min_severity: String(filters.minSeverity),
+    min_density: String(filters.minDensity),
+  });
+  return params.toString();
+}
+
+async function authenticatedGet<T>(
+  path: string,
+  token: string,
+  signal?: AbortSignal,
+): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(apiUrl(path), {
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
+    throw new Error(networkErrorMessage());
+  }
+
+  const data = (await parseJsonResponse(response)) as T & { detail?: string };
+  if (!response.ok) throw new Error(data.detail || `Request failed (${response.status})`);
+  return data;
+}
+
+export function fetchGraphApi(
+  filters: FilterState,
+  token: string,
+  signal?: AbortSignal,
+): Promise<GraphData> {
+  return authenticatedGet(`/graph?${buildFilterQuery(filters)}`, token, signal);
+}
+
+export function fetchAnalyticsSummaryApi(
+  filters: FilterState,
+  token: string,
+  signal?: AbortSignal,
+): Promise<AnalyticsSummary> {
+  return authenticatedGet(`/analytics/summary?${buildFilterQuery(filters)}`, token, signal);
+}
+
+export function fetchClustersApi(
+  filters: FilterState,
+  token: string,
+  signal?: AbortSignal,
+): Promise<CoordinatedCluster[]> {
+  return authenticatedGet(`/analytics/clusters?${buildFilterQuery(filters)}`, token, signal);
 }

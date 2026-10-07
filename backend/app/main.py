@@ -4,7 +4,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.db.neo4j import db
-from app.routes import auth_router, health_router
+from app.routes import (
+    analytics_router,
+    auth_router,
+    entities_router,
+    graph_router,
+    health_router,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -53,6 +59,9 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(entities_router)
+app.include_router(graph_router)
+app.include_router(analytics_router)
 app.include_router(health_router)
 
 @app.get("/")
@@ -61,7 +70,7 @@ def root():
         "name": "OmniGraph API",
         "description": "OSINT & Disinformation Network Analyzer using GraphRAG",
         "version": "1.0.0",
-        "phase": 1,
+        "phase": 2,
         "docs": "/docs",
         "health": "/health"
     }
