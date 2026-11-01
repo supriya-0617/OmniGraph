@@ -6,9 +6,20 @@ interface Props {
   data: Array<{ tag: string; count: number }>;
 }
 
-const COLORS = ['#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#10b981'];
+const COLORS = [
+  'var(--og-coral)',
+  'var(--og-amber)',
+  'var(--og-violet)',
+  'var(--og-mint)',
+];
+
+function formatHashtagTick(tag: string): string {
+  return tag.length > 20 ? `${tag.slice(0, 19)}…` : tag;
+}
 
 export const HashtagChartPlaceholder: React.FC<Props> = ({ data }) => {
+  const rankedData = [...data].sort((a, b) => b.count - a.count);
+
   return (
     <div className="og-card flex flex-col h-full min-h-[280px]">
       <div className="og-card-header">
@@ -20,17 +31,18 @@ export const HashtagChartPlaceholder: React.FC<Props> = ({ data }) => {
       </div>
 
       <div className="px-4 pt-2 pb-3 flex flex-wrap gap-2">
-        {data.slice(0, 4).map((item, index) => (
+        {rankedData.slice(0, 4).map((item, index) => (
           <span
             key={item.tag}
-            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono border border-slate-700/70 bg-slate-900/80"
+            className="inline-flex max-w-full items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono border border-slate-700/70 bg-slate-900/80"
+            title={`${item.tag}: ${item.count} posts`}
           >
             <span
               className="w-1.5 h-1.5 rounded-full shrink-0"
               style={{ backgroundColor: COLORS[index % COLORS.length] }}
               aria-hidden
             />
-            <span className="text-slate-300">{item.tag}</span>
+            <span className="text-slate-300 break-all">{item.tag}</span>
             <span className="text-slate-500">·</span>
             <span className="text-cyan-400/90 tabular-nums">{item.count}</span>
           </span>
@@ -38,31 +50,43 @@ export const HashtagChartPlaceholder: React.FC<Props> = ({ data }) => {
       </div>
 
       <div className="w-full flex-1 min-h-[160px] px-2 pb-4">
-        {data.length ? <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 4 }}>
-            <XAxis type="number" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+        {rankedData.length ? <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={rankedData} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 12 }}>
+            <XAxis
+              type="number"
+              stroke="var(--og-subtle)"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              label={{ value: 'Posts', position: 'insideBottom', offset: -10, fill: 'var(--og-muted)', fontSize: 10 }}
+            />
             <YAxis
               dataKey="tag"
               type="category"
-              stroke="#94a3b8"
+              stroke="var(--og-muted)"
               fontSize={10}
-              width={118}
+              width={142}
               tickLine={false}
               axisLine={false}
+              tickFormatter={formatHashtagTick}
+              reversed
             />
             <Tooltip
+              labelFormatter={(label) => label}
+              formatter={(value) => [value, 'Posts']}
               cursor={{ fill: 'rgba(51, 65, 85, 0.25)' }}
               contentStyle={{
-                backgroundColor: '#0b0f19',
-                borderColor: '#334155',
-                borderRadius: '8px',
-                fontSize: '11px',
+                backgroundColor: 'var(--og-overlay)',
+                borderColor: 'var(--og-border)',
+                borderRadius: '9px',
+                fontSize: '10px',
+                padding: '6px 8px',
                 fontFamily: 'JetBrains Mono, monospace',
               }}
-              itemStyle={{ color: '#38bdf8' }}
+              itemStyle={{ color: 'var(--og-mint)' }}
             />
-            <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={14}>
-              {data.map((_, index) => (
+            <Bar dataKey="count" name="Posts" radius={[0, 6, 6, 0]} barSize={14}>
+              {rankedData.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Bar>

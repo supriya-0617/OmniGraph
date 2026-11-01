@@ -6,21 +6,29 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         surface: {
-          DEFAULT: '#0b0f19',
-          raised: '#111827',
-          card: '#1a2234',
-          overlay: '#1f2937',
+          DEFAULT: 'var(--og-bg)',
+          raised: 'var(--og-surface)',
+          card: 'var(--og-elevated)',
+          overlay: 'var(--og-overlay)',
+        },
+        accent: {
+          mint: 'var(--og-mint)',
+          coral: 'var(--og-coral)',
+          amber: 'var(--og-amber)',
+          violet: 'var(--og-violet)',
+          danger: 'var(--og-danger)',
         },
       },
       boxShadow: {
-        panel: '0 4px 24px -4px rgba(0, 0, 0, 0.45)',
-        'panel-glow': '0 0 32px -8px rgba(6, 182, 212, 0.15)',
+        panel: '0 16px 40px -28px rgba(0, 0, 0, 0.85)',
+        'panel-glow': '0 18px 48px -30px rgba(141, 224, 188, 0.28)',
       },
       borderRadius: {
-        og: '0.75rem',
+        og: 'var(--og-radius-md)',
       },
     },
   },

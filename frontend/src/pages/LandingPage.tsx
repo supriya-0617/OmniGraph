@@ -11,6 +11,7 @@ import {
   Network,
   ScanSearch,
   ShieldAlert,
+  Sparkles,
   Waypoints,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -40,8 +41,16 @@ const capabilities = [
     icon: <BarChart3 aria-hidden="true" />,
     title: 'Compare patterns',
     description:
-      'Review post activity, recurring narratives, and suspected coordination alongside the graph.',
+      'Review post activity, recurring narratives, and shared-IP coordination signals alongside the graph.',
     tone: 'gold',
+  },
+  {
+    number: '04',
+    icon: <Sparkles aria-hidden="true" />,
+    title: 'Investigate with AI · planned',
+    description:
+      'GraphRAG analysis is not active in this build. The planned workflow will relate questions to the filtered network evidence.',
+    tone: 'violet',
   },
 ];
 
@@ -82,7 +91,9 @@ export const LandingPage: React.FC = () => {
             <div className="landing-eyebrow"><span /> OSINT NETWORK ANALYSIS</div>
             <h1 id="hero-title">Follow the links.<br /><em>Find the pattern.</em></h1>
             <p className="landing-hero-description">
-              Explore how accounts, posts, and narratives connect, move, and coordinate.
+              An OSINT workspace for examining suspicious accounts, coordinated activity, and
+              disinformation networks—connecting people, posts, hashtags, and infrastructure in
+              one interactive view.
             </p>
             <div className="landing-hero-actions">
               <button type="button" className="landing-primary-cta" onClick={openWorkspace}>
@@ -98,7 +109,7 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="landing-hero-visual" aria-label="Interactive sample network graph">
+          <div className="landing-hero-visual" role="region" aria-label="Interactive sample network preview">
             <div className="landing-visual-meta">
               <span><i /> SAMPLE NETWORK</span>
               <span>ACCOUNTS / POSTS / SIGNALS</span>
@@ -135,8 +146,11 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="landing-capabilities" id="workflow" aria-label="Analyst workflow">
+        <section className="landing-capabilities" id="workflow" aria-labelledby="workflow-title">
           <div className="landing-section-label"><span>ONE CONNECTED WORKFLOW</span><span>02 / 03</span></div>
+          <h2 id="workflow-title" className="landing-capability-heading">
+            From connected evidence to coordinated patterns.
+          </h2>
           <div className="landing-capability-grid">
             {capabilities.map((capability) => (
               <article className={`landing-capability landing-${capability.tone}`} key={capability.number}>
@@ -157,9 +171,10 @@ export const LandingPage: React.FC = () => {
             <div className="landing-eyebrow">IN DEVELOPMENT</div>
             <h2 id="roadmap-title">Graph context, then AI analysis.</h2>
             <p>
-              The current workspace focuses on authentication, graph exploration, and analytics.
-              A GraphRAG forensic analyst is planned as a later phase, designed to answer questions
-              about the network currently in view.
+              The current workspace provides authentication, graph exploration, and API-backed
+              analytics. The GraphRAG panel is a non-functional preview in this build: no
+              <code> /ai/query </code> endpoint or live model call is available. The planned
+              integration will use the active network context.
             </p>
           </div>
           <div className="landing-roadmap-status">

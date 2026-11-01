@@ -11,11 +11,11 @@ interface Props {
 }
 
 const LEGEND_ITEMS = [
-  { label: 'User', className: 'rounded-full bg-cyan-500' },
-  { label: 'Flagged Account', className: 'rounded-full bg-rose-500 ring-2 ring-rose-300/80' },
-  { label: 'Post', className: 'rounded-sm bg-violet-500' },
-  { label: 'Hashtag', className: 'rotate-45 bg-amber-500' },
-  { label: 'IP Address', className: 'rounded-sm bg-emerald-500' },
+  { label: 'User', className: 'rounded-full og-node-legend-user' },
+  { label: 'Flagged Account', className: 'rounded-full og-node-legend-flagged' },
+  { label: 'Post', className: 'rounded-sm og-node-legend-post' },
+  { label: 'Hashtag', className: 'rotate-45 og-node-legend-hashtag' },
+  { label: 'IP Address', className: 'rounded-sm og-node-legend-ip' },
 ];
 
 interface CytoscapeElementData {
@@ -38,6 +38,18 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
 
   useEffect(() => {
     if (!containerRef.current) return;
+    const palette = getComputedStyle(containerRef.current);
+    const graphColors = {
+      mint: palette.getPropertyValue('--og-mint').trim(),
+      coral: palette.getPropertyValue('--og-coral').trim(),
+      amber: palette.getPropertyValue('--og-amber').trim(),
+      violet: palette.getPropertyValue('--og-violet').trim(),
+      text: palette.getPropertyValue('--og-text').trim(),
+      muted: palette.getPropertyValue('--og-muted').trim(),
+      border: palette.getPropertyValue('--og-subtle').trim(),
+      ip: palette.getPropertyValue('--og-ip').trim(),
+      background: palette.getPropertyValue('--og-bg').trim(),
+    };
 
     const sampleElements: Array<{ data: CytoscapeElementData }> = [
       { data: { id: 'u_001', label: '@alpha_intel', type: 'User', flagged: false, severity: 0.2 } },
@@ -125,9 +137,9 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
         {
           selector: 'node',
           style: {
-            'background-color': '#8ce0bd',
+            'background-color': graphColors.mint,
             label: 'data(label)',
-            color: '#e7efeb',
+            color: graphColors.text,
             'font-size': '10px',
             'font-family': 'JetBrains Mono, monospace',
             'text-valign': 'bottom',
@@ -135,18 +147,18 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
             width: 28,
             height: 28,
             'border-width': 2,
-            'border-color': '#0b1114',
+            'border-color': graphColors.background,
           },
         },
         {
           selector: 'node[type = "User"]',
-          style: { 'background-color': '#8ce0bd', shape: 'ellipse' },
+          style: { 'background-color': graphColors.mint, shape: 'ellipse' },
         },
         {
           selector: 'node[flagged]',
           style: {
-            'background-color': '#ff896f',
-            'border-color': '#ffd0c5',
+            'background-color': graphColors.coral,
+            'border-color': '#f5c2b2',
             'border-width': 3,
             width: 34,
             height: 34,
@@ -154,37 +166,37 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
         },
         {
           selector: 'node[type = "Post"]',
-          style: { 'background-color': '#d8cf78', shape: 'round-rectangle' },
+          style: { 'background-color': graphColors.amber, shape: 'round-rectangle' },
         },
         {
           selector: 'node[type = "Hashtag"]',
-          style: { 'background-color': '#ff896f', shape: 'diamond' },
+          style: { 'background-color': graphColors.violet, shape: 'diamond' },
         },
         {
           selector: 'node[type = "IPAddress"]',
-          style: { 'background-color': '#9fc8b4', shape: 'hexagon' },
+          style: { 'background-color': graphColors.ip, shape: 'hexagon' },
         },
         {
           selector: 'edge',
           style: {
             width: 1.5,
-            'line-color': '#52625e',
-            'target-arrow-color': '#52625e',
+            'line-color': graphColors.border,
+            'target-arrow-color': graphColors.border,
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
             label: 'data(label)',
             'font-size': '8px',
-            color: '#94a5a3',
+            color: graphColors.muted,
             'text-rotation': 'autorotate',
           },
         },
         {
           selector: ':selected',
           style: {
-            'border-color': '#8ce0bd',
+            'border-color': graphColors.mint,
             'border-width': 4,
-            'line-color': '#8ce0bd',
-            'target-arrow-color': '#8ce0bd',
+            'line-color': graphColors.mint,
+            'target-arrow-color': graphColors.mint,
           },
         },
       ],
@@ -224,11 +236,16 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
     if (cyRef.current && highlightNodeId) {
       const node = cyRef.current.$id(highlightNodeId);
       if (node.length > 0) {
-        cyRef.current.animate({
-          center: { eles: node },
-          zoom: 1.5,
-          duration: 500,
-        });
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          cyRef.current.center(node);
+          cyRef.current.zoom(1.5);
+        } else {
+          cyRef.current.animate({
+            center: { eles: node },
+            zoom: 1.5,
+            duration: 500,
+          });
+        }
         node.select();
       }
     }
@@ -238,10 +255,14 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
     if (cyRef.current) {
       const layoutOptions: cytoscape.LayoutOptions =
         graphData === undefined
-          ? { name: 'cose', animate: true, numIter: 150 }
+          ? {
+              name: 'cose',
+              animate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+              numIter: 150,
+            }
           : {
               name: 'concentric',
-              animate: true,
+              animate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
               concentric: (node: cytoscape.NodeSingular) =>
                 (node.data('flagged') ? 100 : 0) + node.degree(),
               levelWidth: () => 2,
@@ -273,7 +294,7 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
 
       <div
         ref={containerRef}
-        className="w-full flex-1 min-h-[420px] relative cursor-grab active:cursor-grabbing bg-[#080c14]"
+        className="w-full flex-1 min-h-[420px] relative cursor-grab active:cursor-grabbing bg-surface"
       />
 
       {isEmpty && (

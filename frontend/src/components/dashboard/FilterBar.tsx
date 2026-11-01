@@ -65,8 +65,9 @@ export const FilterBar: React.FC = () => {
             <div className="og-control-group flex-1 min-w-[200px] lg:max-w-xs">
               <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" strokeWidth={1.75} />
               <div className="flex flex-1 items-center gap-3 min-w-0">
-                <span className="og-control-label shrink-0">Min Severity</span>
+                <span id="min-severity-label" className="og-control-label shrink-0">Min severity</span>
                 <input
+                  id="min-severity"
                   type="range"
                   min="0"
                   max="1"
@@ -74,6 +75,7 @@ export const FilterBar: React.FC = () => {
                   value={filters.minSeverity}
                   onChange={(e) => updateFilter('minSeverity', parseFloat(e.target.value))}
                   className="flex-1 min-w-[72px]"
+                  aria-labelledby="min-severity-label"
                   aria-valuenow={filters.minSeverity}
                   aria-valuetext={`${Math.round(filters.minSeverity * 100)} percent`}
                 />
@@ -87,8 +89,9 @@ export const FilterBar: React.FC = () => {
             <div className="og-control-group flex-1 min-w-[180px] lg:max-w-xs">
               <Layers className="w-3.5 h-3.5 text-cyan-400 shrink-0" strokeWidth={1.75} />
               <div className="flex flex-1 items-center gap-3 min-w-0">
-                <span className="og-control-label shrink-0">Min Density</span>
+                <span id="min-density-label" className="og-control-label shrink-0">Min users / group</span>
                 <input
+                  id="min-density"
                   type="range"
                   min="1"
                   max="10"
@@ -96,10 +99,12 @@ export const FilterBar: React.FC = () => {
                   value={filters.minDensity}
                   onChange={(e) => updateFilter('minDensity', parseInt(e.target.value, 10))}
                   className="flex-1 min-w-[64px]"
+                  aria-labelledby="min-density-label"
                   aria-valuenow={filters.minDensity}
+                  aria-valuetext={`${filters.minDensity} users per coordination group`}
                 />
-                <span className="text-cyan-400 font-semibold font-mono text-xs w-8 text-right shrink-0">
-                  {filters.minDensity}x
+                <span className="text-cyan-400 font-semibold font-mono text-xs w-8 text-right shrink-0" aria-hidden="true">
+                  {filters.minDensity}
                 </span>
               </div>
             </div>

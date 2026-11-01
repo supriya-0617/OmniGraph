@@ -26,7 +26,10 @@ export const NodeDetailPanel: React.FC<Props> = ({ node, onClose }) => {
   };
 
   return (
-    <div className="absolute top-4 right-4 z-30 w-[min(100%,20rem)] og-card p-4 shadow-panel font-mono text-xs animate-[fadeIn_0.2s_ease-out]">
+    <aside
+      aria-label="Selected node details"
+      className="og-node-detail-panel absolute top-4 right-4 z-30 w-[min(100%,20rem)] og-card p-4 shadow-panel font-mono text-xs animate-[fadeIn_0.2s_ease-out]"
+    >
       <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 gap-2">
         <div className="flex items-center gap-2 min-w-0">
           {getIcon()}
@@ -94,6 +97,6 @@ export const NodeDetailPanel: React.FC<Props> = ({ node, onClose }) => {
           </div>
         )}
       </div>
-    </div>
+    </aside>
   );
 };
