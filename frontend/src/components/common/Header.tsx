@@ -1,53 +1,31 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Network, LogOut, User, Cpu } from 'lucide-react';
+import { Network, LogOut, User } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { user, logout } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-800/90 bg-surface/95 backdrop-blur-md shadow-panel">
-      <div className="og-container h-16 flex items-center justify-between gap-4">
-        {/* Brand */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 p-0.5 flex items-center justify-center glow-cyan">
-            <div className="w-full h-full bg-surface rounded-[7px] flex items-center justify-center">
-              <Network className="w-5 h-5 text-cyan-400" strokeWidth={1.75} />
-            </div>
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <h1 className="font-bold text-lg tracking-tight text-white font-mono leading-none">
-                OMNIGRAPH
-              </h1>
-              <span className="og-badge-cyan shrink-0">Phase 2 OSINT</span>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5 truncate">
-              Disinformation &amp; Network Analyzer
-            </p>
-          </div>
-        </div>
-
-        {/* Center status — desktop */}
-        <div className="hidden lg:flex items-center gap-3 text-xs text-slate-400 font-mono shrink-0">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-800">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" aria-hidden />
-            <span>
-              API: <span className="text-slate-200">FastAPI</span>
+    <header className="dashboard-header sticky top-0 z-50 border-b bg-surface/95 backdrop-blur-md shadow-panel">
+      <div className="og-container min-h-16 flex items-center justify-between gap-4 py-2">
+        <Link to="/" className="dashboard-brand flex items-center gap-3 min-w-0" aria-label="OmniGraph home">
+          <span className="dashboard-brand-mark shrink-0 w-10 h-10 rounded-xl flex items-center justify-center">
+            <Network className="w-5 h-5 text-accent-mint" strokeWidth={1.75} aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block font-display font-semibold text-lg tracking-tight leading-none">
+              OMNIGRAPH
             </span>
-          </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-800">
-            <Cpu className="w-3.5 h-3.5 text-cyan-400 shrink-0" strokeWidth={1.75} />
-            <span>
-              GraphRAG: <span className="text-amber-300">Planned</span>
+            <span className="mt-1 block text-xs text-slate-400 truncate">
+              Analyst workspace
             </span>
-          </div>
-        </div>
+          </span>
+        </Link>
 
-        {/* User + logout */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {user && (
-            <div className="hidden sm:inline-flex items-center gap-2 max-w-[200px] lg:max-w-xs px-3 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-xs">
+            <div className="dashboard-user hidden sm:inline-flex items-center gap-2 max-w-[200px] lg:max-w-xs px-3 py-2 rounded-lg border text-sm">
               <User className="w-3.5 h-3.5 text-slate-400 shrink-0" strokeWidth={1.75} />
               <span className="text-slate-300 font-mono truncate" title={user.email}>
                 {user.email}
@@ -57,11 +35,11 @@ export const Header: React.FC = () => {
           <button
             type="button"
             onClick={logout}
-            className="og-btn-ghost"
+            className="og-btn-ghost dashboard-logout"
             title="Sign out of analyst workstation"
           >
-            <LogOut className="w-3.5 h-3.5 text-slate-400 shrink-0" strokeWidth={1.75} />
-            <span>Logout</span>
+            <LogOut className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            <span>Sign out</span>
           </button>
         </div>
       </div>

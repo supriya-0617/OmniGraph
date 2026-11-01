@@ -6,9 +6,21 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { LandingPage } from './pages/LandingPage';
+import { useAuth } from './context/AuthContext';
+import { LoadingSpinner } from './components/common/LoadingSpinner';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <>{children}</>;
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-surface flex items-center justify-center">
+        <LoadingSpinner message="Restoring analyst session…" />
+      </main>
+    );
+  }
+
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
 export const AppContent: React.FC = () => {

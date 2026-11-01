@@ -3,13 +3,10 @@ import { AnalyticsSummary, CoordinatedCluster } from '../types/analytics';
 import { FilterState, GraphData } from '../types/graph';
 
 /**
- * In dev, default to same-origin requests so Vite's `/auth` proxy reaches FastAPI (no CORS).
- * Override with VITE_API_BASE_URL (see frontend/.env.example).
+ * Use same-origin paths by default in every build. Vite proxies these paths in
+ * development; production can set VITE_API_BASE_URL for a separately hosted API.
  */
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ??
-  (import.meta.env.DEV ? '' : 'http://localhost:8000')
-).replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
 
 function apiUrl(path: string): string {
   const normalized = path.startsWith('/') ? path : `/${path}`;
@@ -23,8 +20,9 @@ function networkErrorMessage(): string {
       'and ensure the Vite dev server is running so /auth requests can be proxied.'
     );
   }
-  return `Cannot reach the OmniGraph API at ${API_BASE_URL || '(same origin)'}. ` +
-    'Is the FastAPI backend running on port 8000?';
+  return API_BASE_URL
+    ? `Cannot reach the OmniGraph API at ${API_BASE_URL}.`
+    : 'Cannot reach the OmniGraph API on this origin. Verify the API service or production reverse proxy.';
 }
 
 async function parseJsonResponse(res: Response): Promise<unknown> {
@@ -35,6 +33,30 @@ async function parseJsonResponse(res: Response): Promise<unknown> {
   } catch {
     throw new Error(res.ok ? 'Invalid response from server' : `Request failed (${res.status})`);
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function apiErrorMessage(detail: unknown, fallback: string): string {
+  if (typeof detail === 'string' && detail.trim()) return detail;
+
+  if (Array.isArray(detail)) {
+    const messages = detail.flatMap((item) => {
+      if (!isRecord(item)) return [];
+      const message = item.msg ?? item.message;
+      return typeof message === 'string' && message.trim() ? [message] : [];
+    });
+    if (messages.length) return messages.join('; ');
+  }
+
+  if (isRecord(detail)) {
+    const message = detail.msg ?? detail.message;
+    if (typeof message === 'string' && message.trim()) return message;
+  }
+
+  return fallback;
 }
 
 export async function registerApi(email: string, password: string): Promise<RegisterResponse> {
@@ -51,11 +73,11 @@ export async function registerApi(email: string, password: string): Promise<Regi
     throw new Error(networkErrorMessage());
   }
 
-  const data = (await parseJsonResponse(res)) as RegisterResponse & { detail?: string };
+  const data = await parseJsonResponse(res);
   if (!res.ok) {
-    throw new Error(data.detail || 'Registration failed');
+    throw new Error(apiErrorMessage(isRecord(data) ? data.detail : undefined, 'Registration failed'));
   }
-  return data;
+  return data as RegisterResponse;
 }
 
 export async function loginApi(email: string, password: string): Promise<LoginResponse> {
@@ -72,11 +94,11 @@ export async function loginApi(email: string, password: string): Promise<LoginRe
     throw new Error(networkErrorMessage());
   }
 
-  const data = (await parseJsonResponse(res)) as LoginResponse & { detail?: string };
+  const data = await parseJsonResponse(res);
   if (!res.ok) {
-    throw new Error(data.detail || 'Invalid email or password');
+    throw new Error(apiErrorMessage(isRecord(data) ? data.detail : undefined, 'Invalid email or password'));
   }
-  return data;
+  return data as LoginResponse;
 }
 
 export async function checkHealthApi(): Promise<unknown | null> {
@@ -116,9 +138,14 @@ async function authenticatedGet<T>(
     throw new Error(networkErrorMessage());
   }
 
-  const data = (await parseJsonResponse(response)) as T & { detail?: string };
-  if (!response.ok) throw new Error(data.detail || `Request failed (${response.status})`);
-  return data;
+  const data = await parseJsonResponse(response);
+  if (!response.ok) {
+    throw new Error(apiErrorMessage(
+      isRecord(data) ? data.detail : undefined,
+      `Request failed (${response.status})`,
+    ));
+  }
+  return data as T;
 }
 
 export function fetchGraphApi(

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { NotificationBanner } from '../components/common/NotificationBanner';
-import { Network, Lock, Mail, ArrowRight, UserPlus, CheckCircle2 } from 'lucide-react';
+import { AuthField } from '../components/common/AuthField';
+import { Network, Lock, Mail, ArrowRight, UserPlus } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -69,7 +70,7 @@ export const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="auth-page min-h-screen bg-[#0b0f19] bg-grid-pattern flex flex-col items-center justify-center p-4">
+    <div className="auth-page min-h-screen bg-surface flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-8">
@@ -78,13 +79,13 @@ export const RegisterPage: React.FC = () => {
               <Network className="w-7 h-7 text-cyan-400" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold font-mono text-white tracking-tight">OmniGraph</h1>
-          <p className="text-xs text-slate-400 mt-1 font-mono">OSINT Disinformation Network Workstation</p>
+          <h1 className="text-3xl font-semibold font-display text-white tracking-tight">OmniGraph</h1>
+          <p className="text-sm text-slate-400 mt-1">OSINT &amp; disinformation network analysis</p>
         </div>
 
         {/* Card Form */}
         <div className="auth-card glass-panel p-8 rounded-2xl shadow-2xl border border-slate-800">
-          <h2 className="text-lg font-bold font-mono text-white mb-6 flex items-center gap-2">
+          <h2 className="auth-heading text-xl font-semibold text-white mb-6 flex items-center gap-2">
             <UserPlus className="w-5 h-5 text-cyan-400" />
             <span>Register New Analyst</span>
           </h2>
@@ -108,57 +109,57 @@ export const RegisterPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4 text-xs font-mono">
+          <form onSubmit={handleSubmit} className="space-y-4 text-sm font-sans">
             {/* Email Field */}
-            <div>
-              <label className="block text-slate-300 font-semibold mb-2">
-                Analyst Email Address
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="analyst@agency.gov"
-                  className="auth-input w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-slate-600 outline-none transition-colors"
-                />
-              </div>
-            </div>
+            <AuthField
+              id="register-email"
+              label="Analyst email address"
+              icon={<Mail className="w-4 h-4 absolute left-3.5 top-3.5" aria-hidden="true" />}
+            >
+              <input
+                id="register-email"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="analyst@agency.gov"
+                className="auth-input w-full border pl-10 pr-4 py-2.5 placeholder-slate-600 outline-none transition-colors"
+              />
+            </AuthField>
 
             {/* Password Field */}
-            <div>
-              <label className="block text-slate-300 font-semibold mb-2">
-                Password (min 6 characters)
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="auth-input w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-slate-600 outline-none transition-colors"
-                />
-              </div>
-            </div>
+            <AuthField
+              id="register-password"
+              label="Password (minimum 6 characters)"
+              icon={<Lock className="w-4 h-4 absolute left-3.5 top-3.5" aria-hidden="true" />}
+            >
+              <input
+                id="register-password"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Create a password"
+                className="auth-input w-full border pl-10 pr-4 py-2.5 placeholder-slate-600 outline-none transition-colors"
+              />
+            </AuthField>
 
             {/* Confirm Password Field */}
-            <div>
-              <label className="block text-slate-300 font-semibold mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="auth-input w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-slate-600 outline-none transition-colors"
-                />
-              </div>
-            </div>
+            <AuthField
+              id="register-confirm-password"
+              label="Confirm password"
+              icon={<Lock className="w-4 h-4 absolute left-3.5 top-3.5" aria-hidden="true" />}
+            >
+              <input
+                id="register-confirm-password"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Enter your password again"
+                className="auth-input w-full border pl-10 pr-4 py-2.5 placeholder-slate-600 outline-none transition-colors"
+              />
+            </AuthField>
 
             {/* Submit Button */}
             <button

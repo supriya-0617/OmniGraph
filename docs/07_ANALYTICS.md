@@ -2,43 +2,79 @@
 
 ## 1. Purpose
 
-Satisfies the rubric's "Data Analytics module/dashboard with filters" requirement, and doubles as the control surface that feeds the GraphRAG chat panel (whatever is filtered here is what the AI reasons about).
+The authenticated dashboard combines a filtered graph with API-backed KPIs, daily post activity, hashtag counts, and suspected coordinated-cluster results. The dashboard reads one shared `FilterContext`; it does not maintain a separate analytics filter state.
+
+The GraphRAG panel is currently a non-functional planned feature. No `/ai/query` route is registered, and the dashboard does not send filters or questions to an AI service.
 
 ## 2. Filters
 
-| Filter | Field | UI control |
+| Filter | API query parameter | Current meaning |
 |---|---|---|
-| Date range | `Post.timestamp` | date range picker |
-| Severity / threat level | `Post.severity` | slider or dropdown (low/med/high) |
-| Platform | `Post.platform` / `User.platform` | multi-select |
-| Interaction density | computed (edges per node in the current window) | slider, "show only clusters above X density" |
+| Date range | `from`, `to` | Inclusive UTC calendar dates applied to post timestamps. The dashboard rejects an inverted range before making requests. |
+| Severity / threat level | `min_severity` | Minimum post severity, from 0 to 1. |
+| Platform | `platform` | Exact post platform; `ALL` is normalized by the backend to no platform restriction. |
+| Interaction density | `min_density` | Minimum distinct users in a coordination group sharing an IP and hashtag within a one-hour window; integer range 1–10. This is not edges per node. |
 
-All filters combine (AND) and are sent as query params to both `/graph` and `/analytics`.
+The API service sends the same filter snapshot, parameter names, and formats to `GET /graph`, `GET /analytics/summary`, and `GET /analytics/clusters`. Date, platform, and severity predicates combine with AND semantics in backend post matching.
 
-For Phase 2, `min_density` is implemented as a minimum coordinated-group size: the number of distinct users sharing an IP and hashtag within a one-hour posting window. It ranges from 1 to 10 to match the dashboard slider. Values above 1 restrict the graph to posts in matching groups.
+**Known density inconsistency (unresolved):** The graph route restricts posts to qualifying groups when `min_density > 1`; the clusters route returns only qualifying groups; the summary route applies density to `coordinated_clusters` but calculates its other aggregates from all posts matching date, platform, and severity. At elevated density thresholds, the graph, clusters, summary KPIs, and charts therefore do not all describe the same population. This needs a backend-owner decision and correction; it is not fixed in the frontend.
+
+The graph is also bounded to at most 120 matching posts. Analytics summary queries use the full matching post set (subject to the density inconsistency above).
 
 ## 3. Metrics / KPIs
 
-| Metric | Definition | Computed via |
+`GET /analytics/summary` supplies the dashboard values directly:
+
+| Dashboard metric | API field | Meaning |
 |---|---|---|
-| Total posts in filter | count of `:Post` matching filter | Cypher `count()` |
-| Total flagged users | count of `:User {flagged:true}` in filter's neighborhood | Cypher |
-| Top nodes by centrality | degree (or betweenness, if time allows) centrality within the filtered sub-graph | Cypher `apoc` procedures if APOC is available on Aura tier, else compute in Python/Cytoscape.js client-side for the rendered sub-graph |
-| Posts over time | time-bucketed post counts | Cypher grouped by day/hour |
-| Top hashtags | count of posts per hashtag in filter | Cypher `count()` grouped by hashtag |
-| Suspected coordinated clusters | groups of users sharing IP + tight posting-time window (see query in `04_GRAPH_SCHEMA.md`) | Cypher, surfaced as a table |
+| Total Posts In Filter | `total_posts` | Count of posts matching date, platform, and severity filters. |
+| Flagged Users | `total_flagged_users` | Distinct flagged users connected to matching posts. |
+| Coordinated Clusters | `coordinated_clusters` | Number of coordination clusters returned for the requested `min_density`. |
+| Avg Threat Severity | `avg_severity` | Average post severity, shown as a percentage. This is an additional dashboard KPI. |
 
-Cluster rows group matching user pairs by IP and hashtag. `time_window_minutes` is the span between the earliest and latest matched posts. `risk_score` is a bounded ranking heuristic: `min(1, 0.25 + 0.1 * min(user_count, 5) + 0.25 * average_post_severity)`. It is not a calibrated probability.
+Zero counts and zero average severity are shown as zero. Centrality metrics are not currently provided by the analytics API or displayed as dashboard KPIs.
 
-> Note on APOC: Neo4j Aura free tier has limited/no APOC procedure support depending on tier — verify what's available before committing to APOC-based centrality; fall back to client-side Cytoscape.js centrality functions (it has built-in degree/betweenness/closeness) if needed.
+## 4. Charts and cluster table
 
-## 4. Chart types (Recharts)
+### Posts over time
 
-- **KPI cards**: total posts, total flagged users, total coordinated clusters detected (simple numbers, updates on filter change).
-- **Line/area chart**: posts-over-time within the filtered window.
-- **Bar chart**: top hashtags by post count.
-- **Table**: top suspected-coordination clusters with a "view in graph" action that jumps to that cluster on the Cytoscape.js canvas.
+- Source: `posts_over_time[]` entries with `bucket` (ISO date string, daily buckets) and `count` (post count).
+- Rendered as a responsive Recharts area chart with date and post-count axes and a date/count tooltip.
+- Invalid bucket strings are displayed as supplied rather than converted into a misleading date.
+- An empty array displays a no-posts message; API failure displays an unavailable state.
+
+### Top hashtags
+
+- Source: `top_hashtags[]` entries with `tag` and `count` (distinct posts mentioning the tag).
+- Rendered as a responsive horizontal Recharts bar chart; the UI sorts a copy by count and does not change the API data.
+- The axis identifies post counts. Long ticks are shortened for layout, while the tooltip and summary chips retain the complete tag.
+- An empty array displays a no-activity message; API failure displays an unavailable state.
+
+### Coordinated clusters
+
+`GET /analytics/clusters` returns rows containing `id`, `cluster_ip`, `user_ids`, `user_handles`, `post_ids`, `hashtag`, `time_window_minutes`, and `risk_score`. The table displays:
+
+- Cluster identifier and shared IP address.
+- User count derived from `user_ids.length`, plus handles when present.
+- Associated hashtag.
+- Time window in minutes and the number/list of post IDs.
+- Backend-provided risk score, sorted descending; the frontend does not recalculate it.
+- A “View in Graph” action, which highlights the first listed user ID or, if absent, the first post ID when that node exists in the graph.
+
+The current response does not include per-cluster post severity, timestamps, or post text; the table does not invent these values. Missing optional fields render safely as unavailable. On narrow screens, the table scrolls within its own container.
+
+The backend risk score is:
+
+`min(1, 0.25 + 0.1 * min(user_count, 5) + 0.25 * average_post_severity)`
+
+This bounded score is a ranking heuristic, **not a calibrated probability**. The UI displays the returned decimal score and labels this limitation.
+
+### Loading, empty, and error states
+
+Initial fetches show section-level loading indicators. Filter refreshes show updating indicators. A successful response replaces prior results; an empty response shows explicit zero/no-results states. Invalid dates skip requests and clear results. If any of the graph, summary, or cluster requests fails, the dashboard clears its prior results and displays an error rather than presenting stale values as current. Outdated or aborted requests cannot replace newer results.
 
 ## 5. Interaction with the AI panel
 
-The dashboard's current filter state is the single source of truth passed to `/ai/query` — the analyst doesn't re-describe the filter in their question; they just ask "why is this cluster flagged?" and the backend already knows what "this cluster" refers to from the active filters. This is the concrete way OmniGraph satisfies the "AI + Analytics demonstration" rubric item.
+The dashboard currently renders a collapsible GraphRAG placeholder that explicitly says AI analysis is planned and inactive. No AI endpoint/router is present in the backend, and the frontend does not submit a question, pass filters to an AI service, render evidence, or highlight AI-selected evidence. The existing `llm_client.py` is an adapter stub with canned static output; it is not a live model integration and must not be presented as one.
+
+To complete this workflow, the backend owner must implement and register an authenticated `/ai/query` contract that accepts the current filter state and question, performs real graph extraction/model inference, and returns validated evidence IDs. Frontend integration and evidence highlighting can follow once that contract exists.

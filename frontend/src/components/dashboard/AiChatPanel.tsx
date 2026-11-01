@@ -11,6 +11,7 @@ export const AiChatPanel: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="w-full og-card-header bg-slate-900/60 hover:bg-slate-800/50 transition-colors text-left cursor-pointer"
         aria-expanded={isOpen}
+        aria-controls="ai-integration-status"
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className="shrink-0 w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white glow-cyan">
@@ -21,7 +22,7 @@ export const AiChatPanel: React.FC = () => {
               <h3 className="text-sm font-mono font-bold text-white tracking-wide">
                 GraphRAG Forensic Analyst
               </h3>
-              <span className="og-badge-muted">Planned · Phase 3</span>
+              <span className="og-badge-muted">Integration pending</span>
             </div>
             <p className="text-[10px] text-slate-500 font-mono mt-0.5 truncate">
               GraphRAG integration is not active in this build
@@ -34,14 +35,14 @@ export const AiChatPanel: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="p-4 flex flex-col gap-4 border-t border-slate-800/80 bg-slate-950/30">
-          <div className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-900/70 p-4">
+        <div id="ai-integration-status" className="p-4 flex flex-col gap-4 border-t border-slate-800/80 bg-slate-950/30">
+          <div className="og-ai-notice flex items-start gap-3 rounded-xl border p-4">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" aria-hidden="true" />
             <div>
-              <p className="text-sm font-semibold text-slate-200">AI analysis is planned for Phase 3.</p>
+              <p className="text-sm font-semibold text-slate-200">AI analysis is not enabled in this build.</p>
               <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                The current release provides graph exploration, filters, and analytics. This panel will
-                later answer questions using the graph currently in view.
+                The backend has no <code>/ai/query</code> endpoint or live model call. No question can be
+                submitted and no AI evidence is available yet.
               </p>
             </div>
           </div>
