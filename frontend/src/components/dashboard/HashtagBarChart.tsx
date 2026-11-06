@@ -1,98 +1,67 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Hash } from 'lucide-react';
+import { ChartCard, ChartEmpty, ChartTooltip, DataTable } from './charts/ChartCard';
+import { axisProps, CHART, formatNumber } from './charts/chartTheme';
 
 interface Props {
   data: Array<{ tag: string; count: number }>;
+  updating?: boolean;
 }
 
-const COLORS = [
-  'var(--og-coral)',
-  'var(--og-amber)',
-  'var(--og-violet)',
-  'var(--og-mint)',
-];
+const shorten = (tag: string) => (tag.length > 20 ? `${tag.slice(0, 19)}…` : tag);
 
-function formatHashtagTick(tag: string): string {
-  return tag.length > 20 ? `${tag.slice(0, 19)}…` : tag;
-}
-
-export const HashtagChartPlaceholder: React.FC<Props> = ({ data }) => {
-  const rankedData = [...data].sort((a, b) => b.count - a.count);
+/** Ranked narratives: one series → one colour for every bar. */
+export const HashtagBarChart: React.FC<Props> = ({ data, updating }) => {
+  const ranked = [...data].sort((a, b) => b.count - a.count);
+  const height = Math.max(200, ranked.length * 30 + 24);
 
   return (
-    <div className="og-card flex flex-col h-full min-h-[280px]">
-      <div className="og-card-header">
-        <div className="og-section-title">
-          <Hash className="w-4 h-4 text-amber-400 shrink-0" strokeWidth={1.75} />
-          <span>Top Narratives &amp; Hashtags</span>
-        </div>
-        <span className="og-badge-muted">Filtered results</span>
+    <ChartCard
+      kicker="Narratives"
+      title="Top hashtags"
+      icon={<Hash className="w-4 h-4 text-accent-violet" strokeWidth={1.75} aria-hidden="true" />}
+      meta={<span className="og-badge hidden sm:inline-flex">Distinct posts</span>}
+      updating={updating}
+      className="h-full"
+      table={ranked.length ? (
+        <DataTable columns={['#', 'Hashtag', 'Posts']} rows={ranked.map((row, index) => [index + 1, row.tag, formatNumber(row.count)])} />
+      ) : undefined}
+    >
+      <div className="px-2 pt-2 pb-3" style={{ height }}>
+        {ranked.length ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={ranked} layout="vertical" margin={{ top: 4, right: 44, left: 4, bottom: 4 }} barCategoryGap={8}>
+              <CartesianGrid horizontal={false} stroke={CHART.grid} />
+              <XAxis type="number" {...axisProps} allowDecimals={false} />
+              <YAxis
+                dataKey="tag"
+                type="category"
+                {...axisProps}
+                axisLine={false}
+                width={138}
+                tickFormatter={shorten}
+                tick={{ fill: CHART.text, fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }}
+              />
+              <Tooltip
+                cursor={{ fill: 'rgba(34,225,255,0.05)' }}
+                content={({ active, payload }) => (
+                  <ChartTooltip
+                    active={active}
+                    label={payload?.[0]?.payload?.tag}
+                    rows={(payload ?? []).map((item) => ({ color: CHART.series1, label: 'Posts', value: formatNumber(Number(item.value)) }))}
+                  />
+                )}
+              />
+              <Bar dataKey="count" fill={CHART.series1} radius={[0, 4, 4, 0]} maxBarSize={16} isAnimationActive={false}>
+                <LabelList dataKey="count" position="right" fill={CHART.tick} fontSize={10} fontFamily="JetBrains Mono, monospace" formatter={(value: number) => formatNumber(value)} />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <ChartEmpty message="No hashtag activity in this view." />
+        )}
       </div>
-
-      <div className="px-4 pt-2 pb-3 flex flex-wrap gap-2">
-        {rankedData.slice(0, 4).map((item, index) => (
-          <span
-            key={item.tag}
-            className="inline-flex max-w-full items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono border border-slate-700/70 bg-slate-900/80"
-            title={`${item.tag}: ${item.count} posts`}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full shrink-0"
-              style={{ backgroundColor: COLORS[index % COLORS.length] }}
-              aria-hidden
-            />
-            <span className="text-slate-300 break-all">{item.tag}</span>
-            <span className="text-slate-500">·</span>
-            <span className="text-cyan-400/90 tabular-nums">{item.count}</span>
-          </span>
-        ))}
-      </div>
-
-      <div className="w-full flex-1 min-h-[160px] px-2 pb-4">
-        {rankedData.length ? <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rankedData} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 12 }}>
-            <XAxis
-              type="number"
-              stroke="var(--og-subtle)"
-              fontSize={10}
-              tickLine={false}
-              axisLine={false}
-              label={{ value: 'Posts', position: 'insideBottom', offset: -10, fill: 'var(--og-muted)', fontSize: 10 }}
-            />
-            <YAxis
-              dataKey="tag"
-              type="category"
-              stroke="var(--og-muted)"
-              fontSize={10}
-              width={142}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={formatHashtagTick}
-              reversed
-            />
-            <Tooltip
-              labelFormatter={(label) => label}
-              formatter={(value) => [value, 'Posts']}
-              cursor={{ fill: 'rgba(51, 65, 85, 0.25)' }}
-              contentStyle={{
-                backgroundColor: 'var(--og-overlay)',
-                borderColor: 'var(--og-border)',
-                borderRadius: '9px',
-                fontSize: '10px',
-                padding: '6px 8px',
-                fontFamily: 'JetBrains Mono, monospace',
-              }}
-              itemStyle={{ color: 'var(--og-mint)' }}
-            />
-            <Bar dataKey="count" name="Posts" radius={[0, 6, 6, 0]} barSize={14}>
-              {rankedData.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer> : <div className="h-full flex items-center justify-center text-xs text-slate-500 font-mono">No hashtag activity in this view.</div>}
-      </div>
-    </div>
+    </ChartCard>
   );
 };

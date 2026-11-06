@@ -7,6 +7,10 @@ import { Network, RefreshCw, Info } from 'lucide-react';
 interface Props {
   onSelectNode: (node: GraphNode | null) => void;
   highlightNodeId?: string | null;
+  /** Evidence set from the AI analyst or a selected cluster; other elements are faded. */
+  highlightNodeIds?: string[];
+  /** Likely-origin node from the AI analyst (drawn with an amber ring). */
+  originNodeId?: string | null;
   graphData?: GraphData | null;
 }
 
@@ -30,7 +34,7 @@ interface CytoscapeElementData {
   [key: string]: any;
 }
 
-export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, graphData }) => {
+export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, highlightNodeIds, originNodeId, graphData }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const { filters } = useFilters();
@@ -51,31 +55,7 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
       background: palette.getPropertyValue('--og-bg').trim(),
     };
 
-    const sampleElements: Array<{ data: CytoscapeElementData }> = [
-      { data: { id: 'u_001', label: '@alpha_intel', type: 'User', flagged: false, severity: 0.2 } },
-      { data: { id: 'u_004', label: '@shadow_bot01', type: 'User', flagged: true, severity: 0.95 } },
-      { data: { id: 'u_005', label: '@shadow_bot02', type: 'User', flagged: true, severity: 0.92 } },
-      { data: { id: 'u_006', label: '@shadow_bot03', type: 'User', flagged: true, severity: 0.92 } },
-      { data: { id: 'u_003', label: '@nexus_news', type: 'User', flagged: false, severity: 0.4 } },
-      { data: { id: 'p_001', label: 'Post #1', type: 'Post', text: 'Spike in network activity...', severity: 0.85 } },
-      { data: { id: 'p_002', label: 'Post #2', type: 'Post', text: 'URGENT: System breakdown imminent!', severity: 0.92 } },
-      { data: { id: 'h_001', label: '#DisinfoCampaign', type: 'Hashtag' } },
-      { data: { id: 'h_002', label: '#BotnetDetected', type: 'Hashtag' } },
-      { data: { id: 'ip_200', label: 'IP: 192.0.2.100', type: 'IPAddress', geo: 'PROXY' } },
-      { data: { source: 'u_004', target: 'ip_200', label: 'POSTED_FROM' } },
-      { data: { source: 'u_005', target: 'ip_200', label: 'POSTED_FROM' } },
-      { data: { source: 'u_006', target: 'ip_200', label: 'POSTED_FROM' } },
-      { data: { source: 'u_004', target: 'p_002', label: 'POSTED' } },
-      { data: { source: 'u_005', target: 'p_002', label: 'RETWEETED' } },
-      { data: { source: 'u_006', target: 'p_002', label: 'RETWEETED' } },
-      { data: { source: 'p_002', target: 'h_001', label: 'MENTIONS' } },
-      { data: { source: 'p_002', target: 'h_002', label: 'MENTIONS' } },
-      { data: { source: 'u_001', target: 'p_001', label: 'POSTED' } },
-      { data: { source: 'p_001', target: 'h_001', label: 'MENTIONS' } },
-    ];
-    const elements: Array<{ data: CytoscapeElementData }> = graphData === undefined
-      ? sampleElements
-      : [
+    const elements: Array<{ data: CytoscapeElementData }> = [
           ...(graphData?.nodes ?? []).map((node) => ({
             data: {
               ...node.props,
@@ -155,7 +135,7 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
           style: { 'background-color': graphColors.mint, shape: 'ellipse' },
         },
         {
-          selector: 'node[flagged]',
+          selector: 'node[?flagged]',
           style: {
             'background-color': graphColors.coral,
             'border-color': '#f5c2b2',
@@ -188,6 +168,39 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
             'font-size': '8px',
             color: graphColors.muted,
             'text-rotation': 'autorotate',
+          },
+        },
+        {
+          selector: '.faded',
+          style: { opacity: 0.12, 'text-opacity': 0 },
+        },
+        {
+          selector: 'node.evidence',
+          style: {
+            'border-color': graphColors.violet,
+            'border-width': 4,
+            'overlay-color': graphColors.violet,
+            'overlay-opacity': 0.12,
+            'overlay-padding': 6,
+            'z-index': 20,
+          },
+        },
+        {
+          selector: 'edge.evidence',
+          style: { 'line-color': graphColors.violet, 'target-arrow-color': graphColors.violet, width: 2.5, 'z-index': 19 },
+        },
+        {
+          selector: 'node.origin',
+          style: {
+            'border-color': graphColors.amber,
+            'border-width': 5,
+            width: 44,
+            height: 44,
+            'overlay-color': graphColors.amber,
+            'overlay-opacity': 0.16,
+            'overlay-padding': 8,
+            'font-weight': 'bold',
+            'z-index': 21,
           },
         },
         {
@@ -251,6 +264,27 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
     }
   }, [highlightNodeId]);
 
+  // AI evidence / cluster highlighting: emphasise the set, fade everything else.
+  const highlightKey = (highlightNodeIds ?? []).join('|') + `#${originNodeId ?? ''}`;
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    cy.elements().removeClass('evidence origin faded');
+    const ids = new Set(highlightNodeIds ?? []);
+    if (originNodeId) ids.add(originNodeId);
+    const nodes = cy.nodes().filter((node) => ids.has(node.id()));
+    if (nodes.length === 0) return;
+    const edges = nodes.edgesWith(nodes);
+    nodes.addClass('evidence');
+    edges.addClass('evidence');
+    if (originNodeId) cy.$id(originNodeId).addClass('origin');
+    cy.elements().difference(nodes.union(edges)).addClass('faded');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) cy.fit(nodes, 80);
+    else cy.animate({ fit: { eles: nodes, padding: 80 }, duration: 550, easing: 'ease-in-out-cubic' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the id set
+  }, [highlightKey, graphData]);
+
   const handleResetLayout = () => {
     if (cyRef.current) {
       const layoutOptions: cytoscape.LayoutOptions =
@@ -283,7 +317,7 @@ export const GraphCanvas: React.FC<Props> = ({ onSelectNode, highlightNodeId, gr
         </div>
         <div className="flex items-center gap-2">
           <span className="og-badge-muted hidden md:inline-flex">
-            {graphData === undefined ? 'Demo graph · sample data' : 'Filtered graph results'}
+            {highlightNodeIds?.length ? `${highlightNodeIds.length} highlighted` : 'Filtered graph results'}
           </span>
           <button type="button" onClick={handleResetLayout} className="og-btn-ghost" title="Reset Graph Layout">
             <RefreshCw className="w-3 h-3 text-cyan-400 shrink-0" strokeWidth={1.75} />
