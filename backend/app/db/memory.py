@@ -422,6 +422,77 @@ class MemoryGraphStore:
             ]
             return True
 
+    def create_demo_burst(self, platform: str) -> dict[str, Any]:
+        scenario_id = uuid4().hex[:10]
+        timestamp = datetime.now(timezone.utc)
+        ip_id = f"demo_ip_{scenario_id}"
+        hashtag_id = f"demo_tag_{scenario_id}"
+        hashtag_tag = f"#DemoBurst{scenario_id}"
+        address = f"192.0.2.{1 + int(scenario_id[:4], 16) % 254}"
+        user_ids = []
+        post_ids = []
+
+        with self._lock:
+            self._create_entity(
+                "IPAddress",
+                {
+                    "id": ip_id,
+                    "address": address,
+                    "geo_region": "SIMULATED-NETWORK",
+                },
+            )
+            self._create_entity(
+                "Hashtag", {"id": hashtag_id, "tag": hashtag_tag}
+            )
+            for index in range(10):
+                user_id = f"demo_user_{scenario_id}_{index + 1:02d}"
+                post_id = f"demo_post_{scenario_id}_{index + 1:02d}"
+                posted_at = timestamp + timedelta(seconds=index * 5)
+                self._create_entity(
+                    "User",
+                    {
+                        "id": user_id,
+                        "handle": f"@demo_{scenario_id}_{index + 1:02d}",
+                        "platform": platform,
+                        "created_at": timestamp,
+                        "follower_count": 0,
+                        "ip_hash": ip_id,
+                        "flagged": True,
+                    },
+                )
+                self._create_entity(
+                    "Post",
+                    {
+                        "id": post_id,
+                        "text": "DEMO: repeat signal for coordinated-activity walkthrough.",
+                        "timestamp": posted_at,
+                        "platform": platform,
+                        "severity": 1.0,
+                        "language": "en",
+                    },
+                )
+                self._add_edge(
+                    user_id, ip_id, "POSTED_FROM", {"timestamp": timestamp}
+                )
+                self._add_edge(
+                    user_id, post_id, "POSTED", {"timestamp": posted_at}
+                )
+                self._add_edge(post_id, hashtag_id, "MENTIONS")
+                user_ids.append(user_id)
+                post_ids.append(post_id)
+
+        return {
+            "scenario_id": scenario_id,
+            "shared_ip": address,
+            "hashtag": hashtag_tag,
+            "platform": platform,
+            "accounts_created": len(user_ids),
+            "posts_created": len(post_ids),
+            "window_seconds": 45,
+            "user_ids": user_ids,
+            "post_ids": post_ids,
+        }
+
     def coordination_clusters(self, filters: GraphFilters) -> list[dict[str, Any]]:
         with self._lock:
             users = deepcopy(self._nodes["User"])

@@ -7,6 +7,7 @@ from app.db.neo4j import db
 from app.routes import (
     analytics_router,
     auth_router,
+    demo_router,
     entities_router,
     graph_router,
     health_router,
@@ -59,6 +60,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(demo_router)
 app.include_router(entities_router)
 app.include_router(graph_router)
 app.include_router(analytics_router)
