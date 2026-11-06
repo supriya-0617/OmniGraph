@@ -11,17 +11,17 @@ Full Stack Development Project — Course 24CIE554
 
 ## What it does
 
-OmniGraph maps simulated social-media activity (users, posts, hashtags, IP addresses) into an explorable graph and gives an investigator a filtered graph and analytics dashboard. A GraphRAG forensic analyst is planned for a later phase:
+OmniGraph maps simulated social-media activity (users, posts, hashtags, IP addresses) into an explorable graph and gives an investigator a filtered graph, analytics dashboard, and evidence-grounded GraphRAG forensic analyst:
 
 - **Current:** filter the network by severity, time window, platform, or coordination density; inspect accounts, posts, hashtags, and suspected clusters.
-- **Planned:** ask natural-language questions about the currently filtered sub-graph using an AI Forensic Analyst.
+- **AI investigation:** ask natural-language questions about the currently filtered sub-graph, inspect structured evidence, and highlight supporting nodes.
 
 ## Tech stack
 
 - **Frontend:** React + Vite, Cytoscape.js (graph rendering), Recharts (charts)
 - **Backend:** Python, FastAPI
 - **Database:** Neo4j (Aura, cloud-hosted)
-- **AI:** LangChain/LlamaIndex + an LLM (see `docs/03_TECH_STACK.md` for current status)
+- **AI:** hand-rolled GraphRAG pipeline (see `docs/06_GRAPHRAG.md`) with a swappable LLM adapter — Gemini by default
 
 Full rationale: [`docs/03_TECH_STACK.md`](docs/03_TECH_STACK.md)
 
@@ -46,61 +46,58 @@ See [`AGENTS.md`](AGENTS.md) for conventions if you're using an AI coding assist
 ## Implementation Status
 
 - **Phase 1:** UI/auth scaffolding and login/register complete.
-- **Phase 2:** entity APIs, JWT-protected graph/analytics APIs, deterministic 200-user/2,000-post in-memory fixture, dashboard API integration, fail-closed Neo4j outage handling, transactional Neo4j user/post creation, and temporal serialization hardening are complete for database-free development.
-- **Still deferred:** GraphRAG is Phase 3. Live Neo4j Aura connectivity and protected API verification are complete; the Aura seed currently contains the smaller demo dataset while the 200-user/2,000-post fixture remains available in memory mode.
+- **Phase 2:** entity CRUD, JWT-protected graph/analytics APIs, fail-closed Neo4j handling, transactional writes.
+- **Phase 3:** GraphRAG forensic analyst (prioritised bounded retrieval, deterministic detector findings, multi-provider LLM adapter, server-side evidence grounding, rate limiting), analytics upgrade (density-consistent aggregates, KPI trends, explainable five-factor risk score), shared realistic dataset for memory mode and Aura, "Evidence Room" design system across landing, auth and dashboard, deployment configs.
+- **Remaining:** add `LLM_API_KEY`, deploy (Render + Vercel), Person-1 dashboard/graph refinements.
 
 ## Getting Started
 
-### 1. Setup & Run Backend
-
-Neo4j is optional for local development. With `NEO4J_URI` unset, the backend starts with an in-memory demo graph and supports auth, entity CRUD, graph reads, and analytics. Data created in this mode is lost when the backend stops.
+### 1. Backend
 
 ```bash
 cd backend
-python3 -m venv .venv
-# On Windows:
-.\.venv\Scripts\activate
-# On Linux/macOS:
-source .venv/bin/activate
-
+python -m venv .venv
+.venv\Scripts\activate             # Windows  (Linux/macOS: source .venv/bin/activate)
 pip install -r requirements.txt
+copy .env.example .env             # then fill in values (Linux/macOS: cp)
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 2. Seed Database (Optional)
+* **With Neo4j Aura:** put the Aura credentials (`NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`) in `backend/.env`, then seed once: `python scripts/seed_data.py` (add `--reset` to refresh the 30-day window). If Aura is unreachable the API returns `503` and reconnects automatically.
+* **Without a database:** leave `NEO4J_URI` empty. The same dataset loads in memory; set `DEV_DEFAULT_ACCOUNT_ENABLED=true` for the `1234 / 1234` demo login.
+* **AI analyst:** set `LLM_API_KEY` (and optionally `LLM_PROVIDER`, `LLM_MODEL`). `GET /health` and the dashboard show whether AI is configured. To spend Google Cloud credits (e.g. the $300 trial) use `LLM_PROVIDER=vertex` — AI Studio keys do not draw on those credits. Details: `docs/06_GRAPHRAG.md` §5.
 
-This step is only needed when Neo4j is configured; the in-memory demo data loads automatically.
-
-```bash
-cd backend
-python scripts/seed_data.py
-```
-
-### 3. Setup & Run Frontend
+### 2. Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev          # http://localhost:5173 (proxies API paths to :8000)
+npm run build        # production bundle in dist/
 ```
 
-Visit `http://localhost:5173` to open the analyst workstation.
-
-## Environment Variables
-
-See `.env.example` in root and `backend/.env.example`. Neo4j credentials (`NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`) are optional for the current in-memory development mode. `JWT_SECRET` can be set for a stable local signing key. `LLM_API_KEY` is not needed until the AI integration phase.
-
-### Backend Tests
+### 3. Tests
 
 ```bash
 cd backend
-source .venv/bin/activate
-python -m unittest discover -s . -p 'test*.py' -v
+python -m unittest test_phase2_backend test_phase3_backend test_analytics test_dev_account -v
 ```
+(`test_phase1_api.py` is a smoke script that needs a running server.)
+
+## Deployment
+
+| Part | Target | Config |
+|---|---|---|
+| API | Render (or any host running `uvicorn app.main:app`) | `render.yaml` — set `NEO4J_*`, `LLM_API_KEY`, `CORS_ORIGINS=<frontend URL>`; `JWT_SECRET` is generated; `ENVIRONMENT=production` refuses unsafe settings. |
+| Frontend | Vercel (or Netlify) | `frontend/vercel.json` — root directory `frontend`, env `VITE_API_BASE_URL=<API URL>`. |
+| Database | Neo4j Aura Free | Run `python scripts/seed_data.py` once from a machine with the Aura credentials. |
+
+## Environment Variables
+
+Every backend variable is documented in `backend/.env.example`; frontend variables in `frontend/.env.example`. Real values go in the gitignored `backend/.env` / `frontend/.env` — never in `*.env.example`.
 
 ## Milestones
 
 - **Phase 1** — COMPLETE ✅ (Frontend scaffolding, UI/UX screens, login/register forms, validation, FastAPI backend, Neo4j layer, JWT auth, seed script)
 - **09-10-2026** — Phase 2: Backend CRUD, graph query endpoints, analytics calculation queries
 - **10-11-2026** — Phase 3: Final submission, GraphRAG LLM integration, deployment
-

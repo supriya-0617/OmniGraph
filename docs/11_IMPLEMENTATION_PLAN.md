@@ -29,15 +29,20 @@
 - [x] Frontend dashboard is integrated with graph and analytics APIs; filters refresh all panels.
 - [x] Configure and verify persistent Neo4j connectivity and Neo4j-backed CRUD/analytics.
 
-**Status:** Phase 2 is complete for the verified Aura-backed deployment path. Auth fails closed when Neo4j is configured but unavailable, Neo4j-backed entity writes use transactions, Neo4j temporal values are serialized safely, and live Aura verification covers health, authentication, entity reads, graph reads, and analytics. The deterministic 200-user/2,000-post dataset remains the database-free development fixture; the Aura seed currently contains the smaller demo dataset. The GraphRAG panel is intentionally deferred to Phase 3.
+**Status:** Phase 2 is complete for the verified Aura-backed deployment path. Auth fails closed when Neo4j is configured but unavailable, Neo4j-backed entity writes use transactions, Neo4j temporal values are serialized safely, and live Aura verification covers health, authentication, entity reads, graph reads, and analytics. The deterministic 200-user/2,000-post dataset remains the database-free development fixture; the Aura seed currently contains the smaller demo dataset.
 
 ### Phase 3 target (leading into 10-11-2026 — AI + analytics + polish)
-- [ ] Finalize LLM provider decision (currently leaning Gemini) and implement `llm_client.py` adapter.
-- [ ] `/ai/query` endpoint: sub-graph extraction, prompt construction, LLM call, structured response.
-- [ ] `<AiChatPanel />` wired to `/ai/query`, including node-highlight-on-response behavior.
-- [ ] End-to-end rehearsal: filter → dashboard updates → ask AI → AI response references the filtered cluster (this is the core demo moment for the rubric).
-- [ ] Deployment: frontend to Vercel/Netlify, backend to Render/Railway, verify env vars/secrets on both.
-- [ ] Documentation pass: fill in any `[stated]`/TBD gaps left in these docs, write the final documentation draft for submission.
+- [x] `llm_client.py` adapter: Gemini (AI Studio), Vertex AI (Google Cloud credits), OpenAI-compatible and Anthropic, selected by `LLM_PROVIDER`; default `gemini-3.8-flash`, `gemini-4-argon` for deepest reasoning.
+- [ ] **Add the production `LLM_API_KEY`** (the only remaining step for live AI answers).
+- [x] `/ai/query`: prioritised bounded retrieval, deterministic detector findings, forensic prompt, grounding/validation, rate limit, `/ai/status`.
+- [x] `<AiChatPanel />`: structured answers, evidence chips, origin/evidence graph highlighting, cluster focus, follow-up history.
+- [x] Analytics: consistent density scoping, KPI trends, platform/severity breakdowns, explainable five-factor risk score, response schemas, tests.
+- [x] Landing, auth and design-system redesign ("Evidence Room"); validated chart palette.
+- [x] Shared synthetic dataset for memory mode and Aura; batched idempotent seed script; optional live-stream simulator.
+- [x] Deployment configuration: `render.yaml` (API), `frontend/vercel.json` (SPA), env examples, production start-up checks, env-driven CORS.
+- [ ] Deploy: create the Render + Vercel projects, enter secrets, set `CORS_ORIGINS` and `VITE_API_BASE_URL`, run `scripts/seed_data.py` against Aura.
+- [ ] Person-1 workstream: dashboard layout, filter bar, graph interaction and node-detail refinements.
+- [ ] Documentation pass for the final submission draft.
 
 ## Suggested team split (adjust as needed)
 

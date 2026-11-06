@@ -35,6 +35,23 @@ If the team wants to demo something feeling closer to a live feed:
 
 Keep the total seeded graph in the low thousands of nodes (e.g., 200–500 users, 2,000–5,000 posts) — enough to make filtering and clustering meaningful without stressing the free-tier Aura instance or the Cytoscape.js canvas.
 
-## 6. Database-free development fixture
+## 6. Implemented dataset (`backend/app/data/synthetic.py`)
 
-When `NEO4J_URI` is unset, the backend uses a deterministic in-memory graph fixture instead of connecting to a database. It generates 200 users and 2,000 posts across simulated platforms, with shared-IP coordination bursts and representative reply, retweet, follow, mention, and tagged-user relationships. This fixture is loaded at process startup, is reproducible, and is discarded when the process stops. It supports local Phase 2 API and dashboard work; it does not replace persistent Neo4j setup for the course milestone.
+One deterministic generator (seed 554, timestamps relative to "now") feeds **both** the in-memory development store and the Neo4j seed script, so memory mode and Aura contain the same investigation:
+
+* 200 accounts across X, Telegram and Facebook — 160 organic (old accounts, log-normal follower counts, ~4 % flagged) and 40 campaign accounts (young, low-follower, ~70 % flagged).
+* 2,000 posts over 30 days; organic text from templates with topic slots; severity skewed low.
+* Six fictional coordinated campaigns (`#AvalonWaterAlert`, `#GridBlackoutTruth`, `#SolvixCure`, `#MeridianBankRun`, `#TransitStrikeLeak`, `#AvaCoinAirdrop`): 6–8 accounts on one datacenter/VPN IP posting near-identical text inside a 19–63 minute burst, retweeting a seeding post, following each other, plus a few fooled organic retweeters and a debunk reply.
+* Benign shared infrastructure: campus and office NAT addresses, including one harmless shared-hashtag burst, so analysts and the AI must distinguish coincidence from coordination (it scores 0.24 vs 0.57–0.86 for campaigns).
+* All places, organisations and handles are invented; IPs use RFC 5737 documentation ranges.
+
+Seed Aura with `python scripts/seed_data.py` (idempotent `MERGE`, batched `UNWIND`); `--reset` refreshes a stale time window and never deletes `:Account` logins.
+
+## 7. Live stream simulation (implemented, optional)
+
+`SIMULATOR_ENABLED=true` starts a background task (`backend/app/simulator.py`) that appends 1–3 organic posts from existing non-flagged accounts every `SIMULATOR_INTERVAL_SECONDS` (default 20 s) to whichever store is active, capped at 5,000 posts per process. Real data can also be ingested through `POST /entities/posts` (author, hashtags and timestamp in one call).
+
+## 8. Database-free development fixture
+
+
+When `NEO4J_URI` is unset, the backend uses a deterministic in-memory graph fixture instead of connecting to a database. It loads the dataset described in §6. This fixture is loaded at process startup, is reproducible, and is discarded when the process stops. It supports local Phase 2 API and dashboard work; it does not replace persistent Neo4j setup for the course milestone.
