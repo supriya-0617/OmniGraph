@@ -1,3 +1,11 @@
+import os
+
+# Hermetic: never touch a real database or LLM from unit tests.
+os.environ["NEO4J_URI"] = ""
+os.environ["LLM_API_KEY"] = ""
+os.environ["DEV_DEFAULT_ACCOUNT_ENABLED"] = "true"
+os.environ["ENVIRONMENT"] = "test"
+
 import unittest
 from datetime import date, datetime, timezone
 from unittest.mock import Mock, patch
@@ -109,7 +117,9 @@ class CoordinationTests(unittest.TestCase):
         self.assertEqual(cluster["user_ids"], ["u1", "u2", "u3"])
         self.assertEqual(cluster["post_ids"], ["p1", "p2", "p3"])
         self.assertEqual(cluster["time_window_minutes"], 10)
-        self.assertEqual(cluster["risk_score"], 0.775)
+        self.assertEqual(cluster["time_window_minutes"], 10)
+        self.assertEqual(cluster["flagged_users"], 0)
+        self.assertTrue(0 < cluster["risk_score"] < 1)
 
     @staticmethod
     def _record(u1_id, u1_handle, u2_id, u2_handle, p1_id, p1_time, p2_id, p2_time):

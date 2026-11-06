@@ -1,10 +1,12 @@
 import uuid
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, status
-from app.schemas.auth import RegisterRequest, RegisterResponse, LoginRequest, TokenResponse
+from fastapi import APIRouter, Depends, HTTPException, status
+from app.schemas.auth import AccountResponse, RegisterRequest, RegisterResponse, LoginRequest, TokenResponse
+from app.auth.dependencies import get_current_account
 from app.auth.jwt import hash_password, verify_password, create_access_token
 from app.db.neo4j import db
+from app.config import settings
 
 logger = logging.getLogger("omnigraph.routes.auth")
 
@@ -12,6 +14,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 # In-memory user store for explicit database-free development mode.
 _in_memory_accounts = {}
+_DEV_USERNAME = "1234"
+_DEV_PASSWORD = "1234"
+_DEV_EMAIL = "1234@local.dev"
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 def register(req: RegisterRequest):
@@ -60,10 +65,10 @@ def register(req: RegisterRequest):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Neo4j register query error: {e}")
+            logger.exception("Neo4j register query error: %s", e)
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error during registration: {str(e)}"
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Registration is temporarily unavailable. Please try again."
             )
 
     if not db.is_memory_mode():
@@ -91,7 +96,22 @@ def register(req: RegisterRequest):
 
 @router.post("/login", response_model=TokenResponse)
 def login(req: LoginRequest):
-    email = req.email.strip().lower()
+    identifier = req.email.strip().lower()
+
+    if (
+        settings.DEV_DEFAULT_ACCOUNT_ENABLED
+        and db.is_memory_mode()
+        and identifier == _DEV_USERNAME
+        and req.password == _DEV_PASSWORD
+    ):
+        access_token = create_access_token(data={"sub": _DEV_USERNAME, "user_id": "dev-account-1234"})
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            user_email=_DEV_USERNAME,
+        )
+
+    email = identifier
 
     if db.is_connected():
         try:
@@ -122,10 +142,10 @@ def login(req: LoginRequest):
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Neo4j login query error: {e}")
+            logger.exception("Neo4j login query error: %s", e)
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error during login: {str(e)}"
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Sign-in is temporarily unavailable. Please try again."
             )
 
     if not db.is_memory_mode():
@@ -148,3 +168,9 @@ def login(req: LoginRequest):
         token_type="bearer",
         user_email=email
     )
+
+
+@router.get("/me", response_model=AccountResponse)
+def me(account: dict = Depends(get_current_account)):
+    """Validate a stored token and return the signed-in analyst (used to restore sessions)."""
+    return AccountResponse(id=str(account["user_id"]), email=str(account["sub"]), expires_at=int(account.get("exp", 0)))

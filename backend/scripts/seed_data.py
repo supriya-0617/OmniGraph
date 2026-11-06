@@ -1,243 +1,127 @@
-import sys
-import os
-import logging
-from datetime import datetime, timezone, timedelta
+"""Seed Neo4j / Aura with the OmniGraph simulated dataset (docs/05_DATA_PIPELINE.md §3).
 
-# Ensure app package is in python path
+    python scripts/seed_data.py            # idempotent MERGE of the full dataset
+    python scripts/seed_data.py --reset    # delete simulated OSINT data first (keeps :Account logins)
+
+Uses batched UNWIND writes and creates constraints/indexes before loading. Timestamps are
+relative to the moment you run it, so re-run with --reset to refresh a stale demo window.
+"""
+import argparse
+import logging
+import os
+import sys
+import time
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.config import settings
-from neo4j import GraphDatabase
+from neo4j import GraphDatabase  # noqa: E402
+
+from app.config import settings  # noqa: E402
+from app.data.synthetic import generate_dataset  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("omnigraph.seed")
+BATCH = 500
 
-CONSTRAINTS_AND_INDEXES = [
-    "CREATE INDEX post_timestamp IF NOT EXISTS FOR (p:Post) ON (p.timestamp);",
-    "CREATE INDEX post_severity IF NOT EXISTS FOR (p:Post) ON (p.severity);",
-    "CREATE CONSTRAINT user_id_unique IF NOT EXISTS FOR (u:User) REQUIRE u.id IS UNIQUE;",
-    "CREATE CONSTRAINT post_id_unique IF NOT EXISTS FOR (p:Post) REQUIRE p.id IS UNIQUE;",
-    "CREATE CONSTRAINT hashtag_id_unique IF NOT EXISTS FOR (h:Hashtag) REQUIRE h.id IS UNIQUE;",
-    "CREATE CONSTRAINT hashtag_tag_unique IF NOT EXISTS FOR (h:Hashtag) REQUIRE h.tag IS UNIQUE;",
-    "CREATE CONSTRAINT ip_id_unique IF NOT EXISTS FOR (ip:IPAddress) REQUIRE ip.id IS UNIQUE;",
-    "CREATE CONSTRAINT account_email_unique IF NOT EXISTS FOR (a:Account) REQUIRE a.email IS UNIQUE;"
+SCHEMA = [
+    "CREATE CONSTRAINT user_id_unique IF NOT EXISTS FOR (u:User) REQUIRE u.id IS UNIQUE",
+    "CREATE CONSTRAINT post_id_unique IF NOT EXISTS FOR (p:Post) REQUIRE p.id IS UNIQUE",
+    "CREATE CONSTRAINT hashtag_id_unique IF NOT EXISTS FOR (h:Hashtag) REQUIRE h.id IS UNIQUE",
+    "CREATE CONSTRAINT hashtag_tag_unique IF NOT EXISTS FOR (h:Hashtag) REQUIRE h.tag IS UNIQUE",
+    "CREATE CONSTRAINT ip_id_unique IF NOT EXISTS FOR (ip:IPAddress) REQUIRE ip.id IS UNIQUE",
+    "CREATE CONSTRAINT account_email_unique IF NOT EXISTS FOR (a:Account) REQUIRE a.email IS UNIQUE",
+    "CREATE INDEX post_timestamp IF NOT EXISTS FOR (p:Post) ON (p.timestamp)",
+    "CREATE INDEX post_severity IF NOT EXISTS FOR (p:Post) ON (p.severity)",
+    "CREATE INDEX post_platform IF NOT EXISTS FOR (p:Post) ON (p.platform)",
 ]
 
-SAMPLE_USERS = [
-    {"id": "u_001", "handle": "@alpha_intel", "platform": "X", "follower_count": 15400, "flagged": False, "ip_hash": "ip_101"},
-    {"id": "u_002", "handle": "@truth_seeker", "platform": "X", "follower_count": 820, "flagged": False, "ip_hash": "ip_102"},
-    {"id": "u_003", "handle": "@nexus_news", "platform": "Telegram", "follower_count": 45000, "flagged": False, "ip_hash": "ip_103"},
-    {"id": "u_004", "handle": "@shadow_bot01", "platform": "X", "follower_count": 12, "flagged": True, "ip_hash": "ip_200"},
-    {"id": "u_005", "handle": "@shadow_bot02", "platform": "X", "follower_count": 5, "flagged": True, "ip_hash": "ip_200"},
-    {"id": "u_006", "handle": "@shadow_bot03", "platform": "X", "follower_count": 8, "flagged": True, "ip_hash": "ip_200"},
-    {"id": "u_007", "handle": "@cyber_sentinel", "platform": "Facebook", "follower_count": 3200, "flagged": False, "ip_hash": "ip_104"},
-    {"id": "u_008", "handle": "@echo_chamber99", "platform": "Telegram", "follower_count": 110, "flagged": True, "ip_hash": "ip_201"},
-    {"id": "u_009", "handle": "@narrative_node", "platform": "X", "follower_count": 430, "flagged": False, "ip_hash": "ip_105"},
-    {"id": "u_010", "handle": "@global_watcher", "platform": "X", "follower_count": 9800, "flagged": False, "ip_hash": "ip_106"}
-]
+NODE_QUERIES = {
+    "IPAddress": "UNWIND $rows AS row MERGE (n:IPAddress {id: row.id}) SET n += row",
+    "Hashtag": "UNWIND $rows AS row MERGE (n:Hashtag {tag: row.tag}) SET n.id = row.id",
+    "User": "UNWIND $rows AS row MERGE (n:User {id: row.id}) SET n += row",
+    "Post": "UNWIND $rows AS row MERGE (n:Post {id: row.id}) SET n += row",
+}
 
-SAMPLE_IP_ADDRESSES = [
-    {"id": "ip_101", "address": "198.51.100.14", "geo_region": "US-East"},
-    {"id": "ip_102", "address": "198.51.100.22", "geo_region": "EU-Central"},
-    {"id": "ip_103", "address": "198.51.100.89", "geo_region": "ASIA-East"},
-    {"id": "ip_104", "address": "203.0.113.45", "geo_region": "US-West"},
-    {"id": "ip_105", "address": "203.0.113.78", "geo_region": "EU-West"},
-    {"id": "ip_106", "address": "203.0.113.91", "geo_region": "US-Central"},
-    {"id": "ip_200", "address": "192.0.2.100", "geo_region": "UNKNOWN-PROXY"},  # Shared Botnet IP
-    {"id": "ip_201", "address": "192.0.2.105", "geo_region": "UNKNOWN-PROXY"}
-]
+# Endpoint labels per relationship type (docs/04_GRAPH_SCHEMA.md §2).
+EDGE_ENDPOINTS = {
+    "POSTED": ("User", "Post"),
+    "RETWEETED": ("User", "Post"),
+    "REPLIED_TO": ("Post", "Post"),
+    "MENTIONS": ("Post", "Hashtag"),
+    "TAGGED_USER": ("Post", "User"),
+    "POSTED_FROM": ("User", "IPAddress"),
+    "FOLLOWS": ("User", "User"),
+}
 
-SAMPLE_HASHTAGS = [
-    {"id": "h_001", "tag": "#DisinfoCampaign"},
-    {"id": "h_002", "tag": "#BotnetDetected"},
-    {"id": "h_003", "tag": "#DeepFakeAlert"},
-    {"id": "h_004", "tag": "#CyberSecurity"},
-    {"id": "h_005", "tag": "#OSINTInvestigates"}
-]
 
-NOW = datetime.now(timezone.utc)
+def _batches(rows):
+    for start in range(0, len(rows), BATCH):
+        yield rows[start : start + BATCH]
 
-SAMPLE_POSTS = [
-    {
-        "id": "p_001",
-        "author_id": "u_001",
-        "text": "Breaking OSINT alert: Unexplained spike in synthetic network activity detected across regional nodes.",
-        "timestamp": (NOW - timedelta(days=2)).isoformat(),
-        "platform": "X",
-        "severity": 0.85,
-        "language": "en",
-        "hashtags": ["#DisinfoCampaign", "#OSINTInvestigates"],
-        "ip_id": "ip_101"
-    },
-    {
-        "id": "p_002",
-        "author_id": "u_004",
-        "text": "URGENT: System breakdown imminent! Re-post before it gets censored!",
-        "timestamp": (NOW - timedelta(hours=36)).isoformat(),
-        "platform": "X",
-        "severity": 0.92,
-        "language": "en",
-        "hashtags": ["#BotnetDetected", "#DisinfoCampaign"],
-        "ip_id": "ip_200"
-    },
-    {
-        "id": "p_003",
-        "author_id": "u_005",
-        "text": "URGENT: System breakdown imminent! Re-post before it gets censored!",
-        "timestamp": (NOW - timedelta(hours=35, minutes=50)).isoformat(),
-        "platform": "X",
-        "severity": 0.92,
-        "language": "en",
-        "hashtags": ["#BotnetDetected", "#DisinfoCampaign"],
-        "ip_id": "ip_200"
-    },
-    {
-        "id": "p_004",
-        "author_id": "u_006",
-        "text": "URGENT: System breakdown imminent! Re-post before it gets censored!",
-        "timestamp": (NOW - timedelta(hours=35, minutes=45)).isoformat(),
-        "platform": "X",
-        "severity": 0.92,
-        "language": "en",
-        "hashtags": ["#BotnetDetected", "#DisinfoCampaign"],
-        "ip_id": "ip_200"
-    },
-    {
-        "id": "p_005",
-        "author_id": "u_003",
-        "text": "Detailed telemetry graph analysis on emerging automated amplification networks.",
-        "timestamp": (NOW - timedelta(days=1)).isoformat(),
-        "platform": "Telegram",
-        "severity": 0.40,
-        "language": "en",
-        "hashtags": ["#CyberSecurity"],
-        "ip_id": "ip_103"
-    },
-    {
-        "id": "p_006",
-        "author_id": "u_007",
-        "text": "Synthetic media circulating regarding recent grid operations. Verify sources.",
-        "timestamp": (NOW - timedelta(hours=12)).isoformat(),
-        "platform": "Facebook",
-        "severity": 0.65,
-        "language": "en",
-        "hashtags": ["#DeepFakeAlert"],
-        "ip_id": "ip_104"
-    }
-]
 
-def run_seed() -> bool:
-    uri = settings.NEO4J_URI
-    user = settings.NEO4J_USER
-    password = settings.NEO4J_PASSWORD
-
-    logger.info(f"Connecting to Neo4j database at {uri}...")
+def run_seed(reset: bool = False) -> bool:
+    if not settings.NEO4J_URI:
+        logger.error("NEO4J_URI is not set. Add the Aura credentials to backend/.env first.")
+        return False
+    session_kwargs = {"database": settings.NEO4J_DATABASE} if settings.NEO4J_DATABASE else {}
+    logger.info("Connecting to %s ...", settings.NEO4J_URI)
+    driver = GraphDatabase.driver(settings.NEO4J_URI, auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD))
     try:
-        driver = GraphDatabase.driver(uri, auth=(user, password))
-        driver.verify_connectivity()
-    except Exception as e:
-        logger.warning(f"Could not authenticate or connect to Neo4j instance at {uri}: {e}")
-        logger.info("==========================================================================")
-        logger.info("NOTE: Check the Aura instance status and the NEO4J_USER/NEO4J_PASSWORD values in backend/.env.")
-        logger.info("To seed live Neo4j Aura cloud database:")
-        logger.info("1. Copy .env.example to .env")
-        logger.info("2. Set NEO4J_URI=neo4j+s://<your-aura-instance>.databases.neo4j.io")
-        logger.info("3. Set NEO4J_USER=neo4j and NEO4J_PASSWORD=<your-password>")
-        logger.info("4. Re-run: python scripts/seed_data.py")
-        logger.info("==========================================================================")
+        with driver.session(**session_kwargs) as probe:
+            probe.run("RETURN 1").consume()
+    except Exception as error:
+        logger.error("Could not connect to Neo4j: %s", error)
+        logger.error("Check the Aura console (instance running? paused?) and NEO4J_* values in backend/.env.")
+        driver.close()
         return False
 
-    with driver.session() as session:
-        # Step 1: Create Constraints & Indexes
-        logger.info("Setting up Cypher schema constraints and indexes...")
-        for query in CONSTRAINTS_AND_INDEXES:
-            try:
-                session.run(query)
-            except Exception as e:
-                logger.warning(f"Schema query info: {e}")
+    started = time.monotonic()
+    dataset = generate_dataset()
+    with driver.session(**session_kwargs) as session:
+        if reset:
+            logger.info("Removing existing simulated OSINT data (Account nodes are kept)...")
+            session.run(
+                "MATCH (n) WHERE n:User OR n:Post OR n:Hashtag OR n:IPAddress "
+                "CALL { WITH n DETACH DELETE n } IN TRANSACTIONS OF 1000 ROWS"
+            ).consume()
 
-        # Step 2: Seed Users
-        logger.info("Seeding :User nodes...")
-        for u in SAMPLE_USERS:
-            session.run("""
-                MERGE (u:User {id: $id})
-                SET u.handle = $handle,
-                    u.platform = $platform,
-                    u.follower_count = $follower_count,
-                    u.flagged = $flagged,
-                    u.ip_hash = $ip_hash,
-                    u.created_at = datetime()
-            """, u)
+        for statement in SCHEMA:
+            session.run(statement).consume()
 
-        # Step 3: Seed IPAddresses
-        logger.info("Seeding :IPAddress nodes...")
-        for ip in SAMPLE_IP_ADDRESSES:
-            session.run("""
-                MERGE (i:IPAddress {id: $id})
-                SET i.address = $address,
-                    i.geo_region = $geo_region
-            """, ip)
+        for label in ("IPAddress", "Hashtag", "User", "Post"):
+            rows = list(dataset["nodes"][label].values())
+            for batch in _batches(rows):
+                session.execute_write(lambda tx, b=batch: tx.run(NODE_QUERIES[label], rows=b).consume())
+            logger.info("  %-9s %5d nodes", label, len(rows))
 
-        # Step 4: Seed Hashtags
-        logger.info("Seeding :Hashtag nodes...")
-        for h in SAMPLE_HASHTAGS:
-            session.run("""
-                MERGE (h:Hashtag {id: $id})
-                SET h.tag = $tag
-            """, h)
+        by_type: dict[str, list] = {}
+        for edge in dataset["edges"]:
+            by_type.setdefault(edge["type"], []).append({
+                "source": edge["source"],
+                "target": edge["target"],
+                "props": {k: v for k, v in edge["properties"].items() if v is not None},
+            })
+        for relation, rows in by_type.items():
+            source_label, target_label = EDGE_ENDPOINTS[relation]
+            query = (
+                f"UNWIND $rows AS row "
+                f"MATCH (a:{source_label} {{id: row.source}}) MATCH (b:{target_label} {{id: row.target}}) "
+                f"MERGE (a)-[r:{relation}]->(b) SET r += row.props"
+            )
+            for batch in _batches(rows):
+                session.execute_write(lambda tx, b=batch, q=query: tx.run(q, rows=b).consume())
+            logger.info("  %-12s %5d relationships", relation, len(rows))
 
-        # Step 5: Seed User POSTED_FROM IPAddress relationships
-        logger.info("Creating :POSTED_FROM relationships...")
-        for u in SAMPLE_USERS:
-            session.run("""
-                MATCH (u:User {id: $u_id})
-                MATCH (i:IPAddress {id: $ip_id})
-                MERGE (u)-[:POSTED_FROM]->(i)
-            """, u_id=u["id"], ip_id=u["ip_hash"])
-
-        # Step 6: Seed Posts & Relationships
-        logger.info("Seeding :Post nodes and interaction relationships...")
-        for p in SAMPLE_POSTS:
-            session.run("""
-                MERGE (post:Post {id: $id})
-                SET post.text = $text,
-                    post.timestamp = datetime($timestamp),
-                    post.platform = $platform,
-                    post.severity = $severity,
-                    post.language = $language
-            """, p)
-
-            # User POSTED Post
-            session.run("""
-                MATCH (u:User {id: $author_id})
-                MATCH (p:Post {id: $post_id})
-                MERGE (u)-[r:POSTED]->(p)
-                SET r.timestamp = datetime($timestamp)
-            """, author_id=p["author_id"], post_id=p["id"], timestamp=p["timestamp"])
-
-            # Post MENTIONS Hashtag
-            for tag_name in p["hashtags"]:
-                session.run("""
-                    MATCH (p:Post {id: $post_id})
-                    MATCH (h:Hashtag {tag: $tag})
-                    MERGE (p)-[:MENTIONS]->(h)
-                """, post_id=p["id"], tag=tag_name)
-
-        # Step 7: Create retweet amplification edges for botnet demo
-        session.run("""
-            MATCH (u2:User {id: 'u_005'}), (p1:Post {id: 'p_002'})
-            MERGE (u2)-[r:RETWEETED]->(p1)
-            SET r.timestamp = datetime()
-        """)
-        session.run("""
-            MATCH (u3:User {id: 'u_006'}), (p1:Post {id: 'p_002'})
-            MERGE (u3)-[r:RETWEETED]->(p1)
-            SET r.timestamp = datetime()
-        """)
-
+        counts = session.run(
+            "MATCH (n) WHERE n:User OR n:Post OR n:Hashtag OR n:IPAddress "
+            "RETURN labels(n)[0] AS label, count(*) AS count ORDER BY label"
+        ).data()
     driver.close()
-    logger.info("OmniGraph Neo4j data seed completed successfully!")
+    logger.info("Seed complete in %.1fs: %s", time.monotonic() - started, counts)
     return True
 
+
 if __name__ == "__main__":
-    raise SystemExit(0 if run_seed() else 1)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--reset", action="store_true", help="delete simulated OSINT nodes before seeding")
+    raise SystemExit(0 if run_seed(reset=parser.parse_args().reset) else 1)
