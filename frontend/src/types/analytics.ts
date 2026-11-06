@@ -17,3 +17,15 @@ export interface CoordinatedCluster {
   time_window_minutes: number;
   risk_score: number;
 }
+
+export interface CoordinationDemoResult {
+  scenario_id: string;
+  shared_ip: string;
+  hashtag: string;
+  platform: string;
+  accounts_created: number;
+  posts_created: number;
+  window_seconds: number;
+  user_ids: string[];
+  post_ids: string[];
+}

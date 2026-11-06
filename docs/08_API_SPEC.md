@@ -46,12 +46,13 @@ Hashtag and IP list responses use the same pagination envelope. Missing entities
 Query params: `from`, `to`, `platform`, `min_severity`, `min_density`.
 `from` and `to` accept date-only values and include the full UTC day. `platform=ALL` is treated as no platform restriction. `min_density` is an integer from `1` to `10`; it is the minimum number of distinct accounts in a shared-IP coordination group. Values above `1` show only posts in qualifying groups.
 The canvas response is bounded to the newest 120 matching posts (plus their connected entities and relationships); summary and cluster analytics still use the full filtered dataset.
+Node IDs are the stable string values of each entity's `id` property. `props.id` matches the top-level node `id`; edge `source` and `target` values refer to node IDs in the same response. The frontend uses these IDs unchanged for cluster navigation and AI evidence highlighting. Node properties and relationship timestamps are serialized as JSON values.
 ```json
 // response
 {
   "nodes": [
-    { "id": "u1", "label": "User", "props": { "handle": "@foo", "flagged": true } },
-    { "id": "p1", "label": "Post", "props": { "text": "...", "severity": 0.8 } }
+    { "id": "u1", "label": "User", "props": { "id": "u1", "handle": "@foo", "flagged": true } },
+    { "id": "p1", "label": "Post", "props": { "id": "p1", "text": "...", "severity": 0.8 } }
   ],
   "edges": [
     { "source": "u1", "target": "p1", "type": "POSTED" }
@@ -80,23 +81,39 @@ Same filters. Returns the suspected-coordination table rows described in `07_ANA
 
 Each row contains `id`, `cluster_ip`, `user_ids`, `user_handles`, `post_ids`, `hashtag`, `time_window_minutes`, and `risk_score`. The score is a deterministic heuristic for sorting, not a probability.
 
+## Demonstration data
+
+### `POST /demo/coordination?platform=X`
+Requires a bearer token. Creates ten clearly synthetic accounts and ten repeated posts within 45 seconds, linked to one fictional documentation-range IP and one generated hashtag. The platform can be `X`, `Telegram`, or `Facebook`. Returns `scenario_id`, `shared_ip`, `hashtag`, `platform`, `accounts_created`, `posts_created`, `window_seconds`, `user_ids`, and `post_ids`.
+
+This endpoint does not inspect Wi-Fi, read client IP addresses, or collect network traffic. Its purpose is to safely demonstrate the existing shared-IP/hashtag cluster detector. After it returns, refresh `/graph` and `/analytics/clusters` with the same filters. It works in memory mode or against a connected Neo4j database; a configured but unavailable database returns `503`.
+
 ## AI / GraphRAG
 
 ### `POST /ai/query`
+The frontend's single `FilterContext` is the source for this request and for `/graph` and `/analytics/*`. The UI uses `dateFrom`, `dateTo`, `minSeverity`, and `minDensity`; API payloads use the names below. Omit `from` or `to` when the analyst clears that bound. Do not construct a second AI-only filter state.
 ```json
 // request
 {
-  "filters": { "from": "...", "to": "...", "platform": "X", "min_severity": 0.5 },
+  "filters": {
+    "from": "2026-09-01",
+    "to": "2026-09-07",
+    "platform": "X",
+    "min_severity": 0.5,
+    "min_density": 1
+  },
   "question": "Where did this narrative originate?"
 }
 // response
 {
   "summary": "...",
   "likely_origin_node_id": "p1",
+  "evidence_node_ids": ["u1", "p1"],
   "coordination_flags": [{ "cluster_ip": "ip1", "user_ids": ["u1", "u2"] }],
   "confidence_note": "Based on shared IP and 12-minute posting window."
 }
 ```
+`likely_origin_node_id` and each `evidence_node_ids` entry use the same stable IDs returned by `/graph`. The graph may not contain every returned ID because its canvas response is capped or the current filter excludes it; the UI highlights visible nodes and reports missing IDs without changing filters. An empty `evidence_node_ids` array is valid.
 
 ## Error shape (consistent across all endpoints)
 

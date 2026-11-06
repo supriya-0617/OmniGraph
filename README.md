@@ -86,6 +86,15 @@ npm run dev
 
 Visit `http://localhost:5173` to open the analyst workstation.
 
+### Coordinated activity demo
+
+1. Sign in and open the dashboard.
+2. Choose a platform, or leave **All Platforms** selected. Keep the date range covering today.
+3. Click **Generate demo burst**. OmniGraph inserts ten synthetic accounts and ten repeated posts on the selected platform, linked to a fictional `192.0.2.x` test address and one demo hashtag over 45 seconds.
+4. The dashboard refreshes; show the new `#DemoBurst…` row and its ten accounts in Suspected Coordinated Clusters. A minimum density of up to `10` still includes this scenario.
+
+This is generated demo data, not activity collected from college Wi-Fi. The app does not sniff, monitor, or store other devices' network traffic.
+
 ## Environment Variables
 
 See `.env.example` in root and `backend/.env.example`. Neo4j credentials (`NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`) are optional for the current in-memory development mode. `JWT_SECRET` can be set for a stable local signing key. `LLM_API_KEY` is not needed until the AI integration phase.

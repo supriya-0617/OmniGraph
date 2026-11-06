@@ -4,11 +4,17 @@ import { Hash } from 'lucide-react';
 
 interface Props {
   data: Array<{ tag: string; count: number }>;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
 const COLORS = ['#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#10b981'];
 
-export const HashtagChartPlaceholder: React.FC<Props> = ({ data }) => {
+export const HashtagChartPlaceholder: React.FC<Props> = ({
+  data,
+  isLoading = false,
+  error,
+}) => {
   return (
     <div className="og-card flex flex-col h-full min-h-[280px]">
       <div className="og-card-header">
@@ -16,7 +22,9 @@ export const HashtagChartPlaceholder: React.FC<Props> = ({ data }) => {
           <Hash className="w-4 h-4 text-amber-400 shrink-0" strokeWidth={1.75} />
           <span>Top Narratives &amp; Hashtags</span>
         </div>
-        <span className="og-badge-muted">Filtered results</span>
+        <span className={error ? 'og-badge-danger' : 'og-badge-muted'}>
+          {error ? 'Unavailable' : isLoading ? 'Updating…' : 'Filtered results'}
+        </span>
       </div>
 
       <div className="px-4 pt-2 pb-3 flex flex-wrap gap-2">
@@ -38,7 +46,15 @@ export const HashtagChartPlaceholder: React.FC<Props> = ({ data }) => {
       </div>
 
       <div className="w-full flex-1 min-h-[160px] px-2 pb-4">
-        {data.length ? <ResponsiveContainer width="100%" height="100%">
+        {error ? (
+          <div className="flex h-full items-center justify-center px-4 text-center text-xs text-rose-300" role="alert">
+            Hashtag results unavailable: {error}
+          </div>
+        ) : isLoading ? (
+          <div className="flex h-full items-center justify-center text-xs text-cyan-300" role="status">
+            Loading hashtag results…
+          </div>
+        ) : data.length ? <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 4 }}>
             <XAxis type="number" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
             <YAxis

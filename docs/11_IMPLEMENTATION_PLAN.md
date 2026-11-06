@@ -32,9 +32,11 @@
 **Status:** Phase 2 is complete for the verified Aura-backed deployment path. Auth fails closed when Neo4j is configured but unavailable, Neo4j-backed entity writes use transactions, Neo4j temporal values are serialized safely, and live Aura verification covers health, authentication, entity reads, graph reads, and analytics. The deterministic 200-user/2,000-post dataset remains the database-free development fixture; the Aura seed currently contains the smaller demo dataset. The GraphRAG panel is intentionally deferred to Phase 3.
 
 ### Phase 3 target (leading into 10-11-2026 — AI + analytics + polish)
+- [x] Investigation workspace: shared validated filters, Cytoscape graph controls and entity/severity styling, selected-node details, cluster navigation, loading/error/empty states, and AI evidence highlight interface.
+- [x] Verify `/graph` filtering and stable node/edge IDs; add serialization, empty-result, and highlight-ID tests; document filter and graph contracts.
 - [ ] Finalize LLM provider decision (currently leaning Gemini) and implement `llm_client.py` adapter.
 - [ ] `/ai/query` endpoint: sub-graph extraction, prompt construction, LLM call, structured response.
-- [ ] `<AiChatPanel />` wired to `/ai/query`, including node-highlight-on-response behavior.
+- [ ] `<AiChatPanel />` wired to `/ai/query`; feed `likely_origin_node_id` and `evidence_node_ids` to the implemented graph highlight interface.
 - [ ] End-to-end rehearsal: filter → dashboard updates → ask AI → AI response references the filtered cluster (this is the core demo moment for the rubric).
 - [ ] Deployment: frontend to Vercel/Netlify, backend to Render/Railway, verify env vars/secrets on both.
 - [ ] Documentation pass: fill in any `[stated]`/TBD gaps left in these docs, write the final documentation draft for submission.

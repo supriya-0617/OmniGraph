@@ -1,6 +1,14 @@
 import { LoginResponse, RegisterResponse } from '../types/auth';
-import { AnalyticsSummary, CoordinatedCluster } from '../types/analytics';
+import { AnalyticsSummary, CoordinatedCluster, CoordinationDemoResult } from '../types/analytics';
 import { FilterState, GraphData } from '../types/graph';
+
+export interface ApiFilterState {
+  from?: string;
+  to?: string;
+  platform: string;
+  min_severity: number;
+  min_density: number;
+}
 
 /**
  * In dev, default to same-origin requests so Vite's `/auth` proxy reaches FastAPI (no CORS).
@@ -89,14 +97,25 @@ export async function checkHealthApi(): Promise<unknown | null> {
   }
 }
 
-function buildFilterQuery(filters: FilterState): string {
-  const params = new URLSearchParams({
-    from: filters.dateFrom,
-    to: filters.dateTo,
+export function toApiFilters(filters: FilterState): ApiFilterState {
+  return {
+    ...(filters.dateFrom ? { from: filters.dateFrom } : {}),
+    ...(filters.dateTo ? { to: filters.dateTo } : {}),
     platform: filters.platform,
-    min_severity: String(filters.minSeverity),
-    min_density: String(filters.minDensity),
+    min_severity: filters.minSeverity,
+    min_density: filters.minDensity,
+  };
+}
+
+function buildFilterQuery(filters: FilterState): string {
+  const apiFilters = toApiFilters(filters);
+  const params = new URLSearchParams({
+    platform: apiFilters.platform,
+    min_severity: String(apiFilters.min_severity),
+    min_density: String(apiFilters.min_density),
   });
+  if (apiFilters.from) params.set('from', apiFilters.from);
+  if (apiFilters.to) params.set('to', apiFilters.to);
   return params.toString();
 }
 
@@ -143,4 +162,23 @@ export function fetchClustersApi(
   signal?: AbortSignal,
 ): Promise<CoordinatedCluster[]> {
   return authenticatedGet(`/analytics/clusters?${buildFilterQuery(filters)}`, token, signal);
+}
+
+export async function createCoordinationDemoApi(
+  platform: string,
+  token: string,
+): Promise<CoordinationDemoResult> {
+  let response: Response;
+  try {
+    response = await fetch(apiUrl(`/demo/coordination?platform=${encodeURIComponent(platform)}`), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error(networkErrorMessage());
+  }
+
+  const data = (await parseJsonResponse(response)) as CoordinationDemoResult & { detail?: string };
+  if (!response.ok) throw new Error(data.detail || `Request failed (${response.status})`);
+  return data;
 }

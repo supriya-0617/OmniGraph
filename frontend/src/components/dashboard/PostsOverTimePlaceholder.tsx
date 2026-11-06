@@ -4,9 +4,15 @@ import { Activity } from 'lucide-react';
 
 interface Props {
   data: Array<{ bucket: string; count: number }>;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
-export const PostsOverTimePlaceholder: React.FC<Props> = ({ data }) => {
+export const PostsOverTimePlaceholder: React.FC<Props> = ({
+  data,
+  isLoading = false,
+  error,
+}) => {
   const chartData = data.map((item) => ({
     time: new Date(`${item.bucket}T00:00:00`).toLocaleDateString(undefined, {
       month: 'short',
@@ -22,11 +28,21 @@ export const PostsOverTimePlaceholder: React.FC<Props> = ({ data }) => {
           <Activity className="w-4 h-4 text-cyan-400 shrink-0" strokeWidth={1.75} />
           <span>Posts Over Time</span>
         </div>
-        <span className="og-badge-muted">Filtered results</span>
+        <span className={error ? 'og-badge-danger' : 'og-badge-muted'}>
+          {error ? 'Unavailable' : isLoading ? 'Updating…' : 'Filtered results'}
+        </span>
       </div>
 
       <div className="w-full flex-1 min-h-[140px] px-2 pb-3 pt-1">
-        {chartData.length ? <ResponsiveContainer width="100%" height="100%">
+        {error ? (
+          <div className="flex h-full items-center justify-center px-4 text-center text-xs text-rose-300" role="alert">
+            Activity results unavailable: {error}
+          </div>
+        ) : isLoading ? (
+          <div className="flex h-full items-center justify-center text-xs text-cyan-300" role="status">
+            Loading post activity…
+          </div>
+        ) : chartData.length ? <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
             <defs>
               <linearGradient id="colorPosts" x1="0" y1="0" x2="0" y2="1">

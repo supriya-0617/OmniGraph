@@ -87,10 +87,31 @@ export const NodeDetailPanel: React.FC<Props> = ({ node, onClose }) => {
           </div>
         )}
 
-        {node.props.geo && (
+        {node.props.platform && (
+          <div className="flex justify-between gap-3 py-1">
+            <span className="text-slate-500">Platform</span>
+            <span className="text-cyan-300">{node.props.platform}</span>
+          </div>
+        )}
+
+        {node.props.timestamp && (
+          <div className="flex justify-between gap-3 py-1 border-b border-slate-800/60">
+            <span className="text-slate-500">Timestamp</span>
+            <span className="text-slate-300 text-right">{new Date(node.props.timestamp).toLocaleString()}</span>
+          </div>
+        )}
+
+        {node.props.follower_count !== undefined && (
+          <div className="flex justify-between gap-3 py-1 border-b border-slate-800/60">
+            <span className="text-slate-500">Followers</span>
+            <span className="text-slate-300">{node.props.follower_count.toLocaleString()}</span>
+          </div>
+        )}
+
+        {(node.props.geo_region || node.props.geo) && (
           <div className="flex justify-between gap-3 py-1">
             <span className="text-slate-500">Geo</span>
-            <span className="text-emerald-400">{node.props.geo}</span>
+            <span className="text-emerald-400">{node.props.geo_region ?? node.props.geo}</span>
           </div>
         )}
       </div>

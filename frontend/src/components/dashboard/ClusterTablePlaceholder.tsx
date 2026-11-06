@@ -5,6 +5,8 @@ import { ShieldAlert, Eye } from 'lucide-react';
 interface Props {
   clusters: CoordinatedCluster[];
   onFocusCluster?: (cluster: CoordinatedCluster) => void;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
 function riskBadgeClass(score: number): string {
@@ -13,7 +15,12 @@ function riskBadgeClass(score: number): string {
   return 'bg-slate-800 text-slate-300 border-slate-600';
 }
 
-export const ClusterTablePlaceholder: React.FC<Props> = ({ clusters, onFocusCluster }) => {
+export const ClusterTablePlaceholder: React.FC<Props> = ({
+  clusters,
+  onFocusCluster,
+  isLoading = false,
+  error,
+}) => {
   return (
     <div className="og-card flex flex-col h-full min-h-[280px]">
       <div className="og-card-header">
@@ -21,7 +28,9 @@ export const ClusterTablePlaceholder: React.FC<Props> = ({ clusters, onFocusClus
           <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" strokeWidth={1.75} />
           <span>Suspected Coordinated Clusters</span>
         </div>
-        <span className="og-badge-danger">{clusters.length} active signals</span>
+        <span className={error ? 'og-badge-danger' : 'og-badge-muted'}>
+          {isLoading ? 'Updating…' : `${clusters.length} active signals`}
+        </span>
       </div>
 
       <div className="p-4 pt-2 flex-1 flex flex-col">
@@ -40,7 +49,21 @@ export const ClusterTablePlaceholder: React.FC<Props> = ({ clusters, onFocusClus
               </tr>
             </thead>
             <tbody>
-              {clusters.map((cluster) => (
+              {error && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-rose-300" role="alert">
+                    Cluster results unavailable: {error}
+                  </td>
+                </tr>
+              )}
+              {isLoading && !error && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-cyan-300" role="status">
+                    Loading clusters for the active filters…
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !error && clusters.map((cluster) => (
                 <tr key={cluster.id}>
                   <td className="text-cyan-400 font-semibold whitespace-nowrap">{cluster.cluster_ip}</td>
                   <td>
@@ -69,6 +92,7 @@ export const ClusterTablePlaceholder: React.FC<Props> = ({ clusters, onFocusClus
                     <button
                       type="button"
                       onClick={() => onFocusCluster?.(cluster)}
+                      aria-label={`View cluster ${cluster.hashtag} in graph`}
                       className="og-btn-ghost py-1 px-2 text-[10px] hover:border-cyan-700/50 hover:bg-cyan-950/40 hover:text-cyan-300"
                     >
                       <Eye className="w-3 h-3 text-cyan-400 shrink-0" strokeWidth={1.75} />
@@ -77,7 +101,7 @@ export const ClusterTablePlaceholder: React.FC<Props> = ({ clusters, onFocusClus
                   </td>
                 </tr>
               ))}
-              {!clusters.length && (
+              {!isLoading && !error && !clusters.length && (
                 <tr><td colSpan={5} className="py-8 text-center text-slate-500">No coordinated clusters match these filters.</td></tr>
               )}
             </tbody>

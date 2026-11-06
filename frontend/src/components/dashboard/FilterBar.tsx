@@ -1,9 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useFilters } from '../../context/FilterContext';
-import { Filter, Calendar, ShieldAlert, Share2, Layers, RotateCcw } from 'lucide-react';
+import { Filter, Calendar, ShieldAlert, Share2, Layers, RotateCcw, ChevronDown } from 'lucide-react';
 
 export const FilterBar: React.FC = () => {
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const { filters, updateFilter, resetFilters } = useFilters();
+  const invalidDateRange = Boolean(
+    filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo,
+  );
+  const activeFilters = [
+    filters.dateFrom || filters.dateTo ? 'Date range' : null,
+    filters.platform !== 'ALL' ? filters.platform : null,
+    filters.minSeverity > 0 ? `Severity ≥ ${Math.round(filters.minSeverity * 100)}%` : null,
+    filters.minDensity > 1 ? `Density ≥ ${filters.minDensity}` : null,
+  ].filter((filter): filter is string => filter !== null);
 
   return (
     <div className="sticky top-16 z-40 border-b border-slate-800/90 bg-surface-raised/95 backdrop-blur-md">
@@ -14,12 +24,33 @@ export const FilterBar: React.FC = () => {
               <Filter className="w-4 h-4 shrink-0" strokeWidth={1.75} />
               <span>Analyst Controls</span>
             </div>
-            <span className="og-badge-muted hidden sm:inline-flex">Filters drive canvas &amp; analytics</span>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="og-badge-muted">
+                {activeFilters.length} active {activeFilters.length === 1 ? 'filter' : 'filters'}
+              </span>
+              <span className="og-badge-muted hidden sm:inline-flex">Shared with graph &amp; analytics</span>
+              <button
+                type="button"
+                onClick={() => setMobileExpanded((expanded) => !expanded)}
+                className="og-btn-ghost px-2 lg:hidden"
+                aria-expanded={mobileExpanded}
+                aria-controls="filter-controls"
+              >
+                <span>{mobileExpanded ? 'Hide filters' : 'Edit filters'}</span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform ${mobileExpanded ? 'rotate-180' : ''}`}
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
           </div>
 
-          <div className="p-4 flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
+          <div
+            id="filter-controls"
+            className={`${mobileExpanded ? 'flex' : 'hidden'} p-4 flex-col gap-4 lg:flex lg:flex-row lg:flex-wrap lg:items-end lg:justify-between`}
+          >
             {/* Date range */}
-            <div className="og-control-group flex-1 min-w-[240px] lg:max-w-md">
+            <div className="og-control-group flex-1 min-w-[240px] lg:max-w-md" aria-invalid={invalidDateRange}>
               <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" strokeWidth={1.75} />
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <label className="flex items-center gap-2">
@@ -29,6 +60,9 @@ export const FilterBar: React.FC = () => {
                     value={filters.dateFrom}
                     onChange={(e) => updateFilter('dateFrom', e.target.value)}
                     className="og-input py-1.5 min-h-[34px] cursor-pointer"
+                    aria-label="Start date"
+                    aria-invalid={invalidDateRange}
+                    aria-describedby={invalidDateRange ? 'filter-date-error' : undefined}
                   />
                 </label>
                 <label className="flex items-center gap-2">
@@ -38,8 +72,16 @@ export const FilterBar: React.FC = () => {
                     value={filters.dateTo}
                     onChange={(e) => updateFilter('dateTo', e.target.value)}
                     className="og-input py-1.5 min-h-[34px] cursor-pointer"
+                    aria-label="End date"
+                    aria-invalid={invalidDateRange}
+                    aria-describedby={invalidDateRange ? 'filter-date-error' : undefined}
                   />
                 </label>
+                {invalidDateRange && (
+                  <p id="filter-date-error" className="basis-full text-[10px] text-rose-300" role="alert">
+                    Start date must be on or before end date. Results will not refresh until corrected.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -76,6 +118,7 @@ export const FilterBar: React.FC = () => {
                   className="flex-1 min-w-[72px]"
                   aria-valuenow={filters.minSeverity}
                   aria-valuetext={`${Math.round(filters.minSeverity * 100)} percent`}
+                  aria-label="Minimum severity"
                 />
                 <span className="text-cyan-400 font-semibold font-mono text-xs w-10 text-right shrink-0">
                   {Math.round(filters.minSeverity * 100)}%
@@ -97,6 +140,7 @@ export const FilterBar: React.FC = () => {
                   onChange={(e) => updateFilter('minDensity', parseInt(e.target.value, 10))}
                   className="flex-1 min-w-[64px]"
                   aria-valuenow={filters.minDensity}
+                  aria-label="Minimum coordination density"
                 />
                 <span className="text-cyan-400 font-semibold font-mono text-xs w-8 text-right shrink-0">
                   {filters.minDensity}x
@@ -109,6 +153,7 @@ export const FilterBar: React.FC = () => {
               onClick={resetFilters}
               className="og-btn-ghost self-start lg:self-auto"
               title="Reset filters to default"
+              aria-label="Reset filters to defaults"
             >
               <RotateCcw className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
               <span>Reset</span>

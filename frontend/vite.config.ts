@@ -28,6 +28,10 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      '/demo': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
