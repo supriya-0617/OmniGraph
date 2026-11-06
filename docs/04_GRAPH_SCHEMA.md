@@ -173,12 +173,16 @@ RETURN total_posts, avg_severity, high_severity_posts, total_accounts, total_fla
 **Seeding** — `backend/scripts/seed_data.py` writes the dataset from `backend/app/data/synthetic.py` in batches of 500:
 ```cypher
 UNWIND $rows AS row MERGE (n:User {id: row.id}) SET n += row          // likewise Post, IPAddress
-UNWIND $rows AS row MERGE (n:Hashtag {tag: row.tag}) SET n.id = row.id
+UNWIND $rows AS row MERGE (n:Hashtag {tag: row.tag}) ON CREATE SET n.id = row.id   // reuse existing tags
 UNWIND $rows AS row
 MATCH (a:User {id: row.source}) MATCH (b:Post {id: row.target})        // labels per relationship type
 MERGE (a)-[r:POSTED]->(b) SET r += row.props
-// --reset (Account nodes are never touched):
-MATCH (n) WHERE n:User OR n:Post OR n:Hashtag OR n:IPAddress
+// MENTIONS edges match the hashtag by tag: MATCH (b:Hashtag {tag: row.target})
+// pre-flight: refuse if an ID exists with different content (likewise Post.text, IPAddress.address, Hashtag.tag)
+UNWIND $rows AS row MATCH (n:User {id: row.id}) WHERE n.handle <> row.value RETURN n.id
+// --reset / --purge-demo delete only namespaced nodes (Account and other data never touched):
+MATCH (n) WHERE (n:User OR n:Post OR n:Hashtag OR n:IPAddress)
+  AND any(prefix IN $prefixes WHERE n.id STARTS WITH prefix)   // ['usr_','pst_','tag_','net_'] / ['demo_']
 CALL { WITH n DETACH DELETE n } IN TRANSACTIONS OF 1000 ROWS
 ```
 An extra index `post_platform` is created alongside the §4 constraints.
@@ -193,4 +197,14 @@ MERGE (u)-[r:POSTED]->(p) SET r.timestamp = p.timestamp
 WITH p UNWIND $hashtags AS tag
 MERGE (h:Hashtag {tag: tag}) ON CREATE SET h.id = randomUUID()
 MERGE (p)-[:MENTIONS]->(h)
+```
+
+**Live demo burst** — `POST /demo/coordination` (`backend/app/routes/demo.py`, data from `synthetic.demo_burst`), one write transaction:
+```cypher
+CREATE (ip:IPAddress) SET ip = $ip
+CREATE (h:Hashtag) SET h = $hashtag
+UNWIND $rows AS row CREATE (u:User) SET u = row
+UNWIND $rows AS row CREATE (p:Post) SET p = row
+UNWIND $rows AS row MATCH (a:User {id: row.source}) MATCH (b:IPAddress {id: row.target})
+CREATE (a)-[r:POSTED_FROM]->(b) SET r = row.props      // likewise POSTED, MENTIONS, RETWEETED
 ```

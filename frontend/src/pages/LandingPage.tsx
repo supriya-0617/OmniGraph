@@ -318,7 +318,7 @@ export const LandingPage: React.FC = () => {
               <b>Medium</b>
             </div>
             <div className="lp-answer-chips">
-              {['ip_c01', 'p_c01_01', 'u_161', '+9'].map((id) => <span key={id} className="og-chip">{id}</span>)}
+              {['net_c01', 'pst_c01_01', 'usr_161', '+9'].map((id) => <span key={id} className="og-chip">{id}</span>)}
             </div>
           </div>
         </section>

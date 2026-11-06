@@ -76,6 +76,15 @@ npm run dev          # http://localhost:5173 (proxies API paths to :8000)
 npm run build        # production bundle in dist/
 ```
 
+### Live coordination demo
+
+1. Sign in and open the dashboard (date range must include today).
+2. Optionally pick a platform (X is used when **All** is selected).
+3. In **02 Coordination signals**, click **Inject live demo burst**. The API (`POST /demo/coordination`) creates ten new accounts on one datacenter test IP (`192.0.2.x`) posting near-identical `[DEMO]` text under a fresh `#DemoBurst…` hashtag over ~5 minutes, then retweeting the seeding post.
+4. The dashboard refreshes and focuses the new cluster in the graph; it appears as a critical row in the cluster table. Use **Ask AI** on that row for the GraphRAG walkthrough.
+
+This is generated demo data, never traffic captured from a real network. Remove injected bursts with `python scripts/seed_data.py --purge-demo`.
+
 ### 3. Tests
 
 ```bash

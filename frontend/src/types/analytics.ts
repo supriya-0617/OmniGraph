@@ -67,3 +67,15 @@ export interface HealthStatus {
   ai: { configured: boolean; provider: string; model: string };
   simulator_enabled: boolean;
 }
+
+export interface CoordinationDemoResult {
+  scenario_id: string;
+  shared_ip: string;
+  hashtag: string;
+  platform: string;
+  accounts_created: number;
+  posts_created: number;
+  window_seconds: number;
+  user_ids: string[];
+  post_ids: string[];
+}

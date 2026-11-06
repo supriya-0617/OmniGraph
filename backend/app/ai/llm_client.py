@@ -209,7 +209,10 @@ def _post_json(url: str, body: dict[str, Any], headers: dict[str, str]) -> dict[
     except HTTPError as error:
         detail = _provider_error_detail(error)
         if error.code in (401, 403):
-            message = "The LLM provider rejected the API credentials (check LLM_API_KEY / project access)."
+            # Providers explain 403s precisely (billing, disabled API, bad key) - surface that text.
+            message = f"The LLM provider refused the request: {detail}" if detail else (
+                "The LLM provider rejected the API credentials (check LLM_API_KEY / project access)."
+            )
         elif error.code == 404:
             message = f"Model not found or not enabled for this key: {detail or 'check LLM_MODEL'}."
         elif error.code == 429:
@@ -230,7 +233,7 @@ def _provider_error_detail(error: HTTPError) -> str:
     try:
         payload = json.loads(error.read().decode("utf-8"))
         message = payload.get("error", {}).get("message") if isinstance(payload.get("error"), dict) else payload.get("error")
-        return str(message or "")[:240]
+        return str(message or "")[:400]
     except Exception:
         return ""
 

@@ -1,5 +1,5 @@
 import { LoginResponse, RegisterResponse } from '../types/auth';
-import { AnalyticsSummary, CoordinatedCluster, HealthStatus, PublicStats } from '../types/analytics';
+import { AnalyticsSummary, CoordinatedCluster, CoordinationDemoResult, HealthStatus, PublicStats } from '../types/analytics';
 import { AIQueryResponse, AIStatus, ConversationTurn } from '../types/ai';
 import { FilterState, GraphData } from '../types/graph';
 
@@ -180,3 +180,12 @@ export function queryAIApi(
     },
   });
 }
+
+// --------------------------------------------------------------------- live demo burst
+/** Injects a fresh coordinated burst (10 accounts, one datacenter IP, "[DEMO]" text). */
+export const createCoordinationDemoApi = (platform: string, token: string) =>
+  request<CoordinationDemoResult>(`/demo/coordination?platform=${encodeURIComponent(platform)}`, {
+    method: 'POST',
+    token,
+    fallbackError: 'Unable to create demo activity',
+  });

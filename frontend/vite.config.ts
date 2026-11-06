@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // API paths proxied to FastAPI in development (production uses VITE_API_BASE_URL or a same-origin proxy).
-const API_PATHS = ['/auth', '/health', '/graph', '/entities', '/analytics', '/ai', '/public'];
+const API_PATHS = ['/auth', '/health', '/graph', '/entities', '/analytics', '/ai', '/public', '/demo'];
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');

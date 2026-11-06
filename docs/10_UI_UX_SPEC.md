@@ -27,18 +27,19 @@ Split layout: an editorial panel ("Every network leaves a trace") with live coun
 Header (brand, live datastore/AI status, analyst, sign-out) and the sticky shared filter bar, then four numbered sections:
 
 1. **01 Threat overview** — four KPI cards with previous-period trends, a "Density-scoped" badge when applicable, last-updated time and a manual refresh.
-2. **02 Coordination signals** — the ranked, sortable cluster table with **Graph** and **Ask AI** actions.
+2. **02 Coordination signals** — the ranked, sortable cluster table with **Graph** and **Ask AI** actions, and **Inject live demo burst** (`POST /demo/coordination`), after which the new cluster is focused automatically.
 3. **03 Investigation** — Cytoscape graph (node details, evidence highlighting) beside the GraphRAG analyst on wide screens; stacked below 1280 px.
 4. **04 Analytics** — posts over time, platform & severity mix, top hashtags.
 
 Initial loads show skeletons; refreshes dim content; invalid dates, API errors (with Retry) and empty data have explicit states. A failed request clears prior results. The dashboard route redirects to sign-in after the session check completes.
 
-> The filter bar, graph interaction, node details and overall workspace layout belong to the Person-1 workstream and may be reorganised there; the section order above is the integration contract for the AI and analytics features.
+IDs the graph cannot show (the canvas is capped at the newest 120 posts) are reported inline above the graph instead of failing silently.
 
 ## 3. Component list (frontend)
 
-- `<FilterBar />` — edits the single shared `FilterContext`.
-- `<GraphCanvas />` — Cytoscape.js graph with node selection, single-node focus (`highlightNodeId`) and evidence-set highlighting (`highlightNodeIds`, `originNodeId`: origin amber ring, evidence violet ring, everything else faded).
+- `<FilterBar />` — compact sticky toolbar over the shared `FilterContext`: date presets (24h / 7d / 30d / All) and pickers, platform, severity and density sliders, removable active-filter chips, reset, inline invalid-date error, collapsible on small screens.
+- `<NodeDetailPanel />` — selected-node inspector: type-specific fields (severity, platform, timestamp, followers, account age with a "new" warning, network type), **connected evidence** grouped by relationship (click to jump), **Focus** neighbourhood and **Ask AI** about the node.
+- `<GraphCanvas />` — Cytoscape.js force-layout graph (Person 1). Consumes `/graph` nodes/edges without a second client-side filter; node size follows degree; zoom / fit / focus / label / reset controls; tap shows a node's neighbourhood. Exposes an imperative handle `focusNodes(ids)`, `highlightNodes(ids, originId)` and `clearHighlights()`; the first two return the IDs that are not in the rendered graph so the UI can report them. Origin = amber ring, AI evidence = violet, cluster focus = cyan, everything else fades.
 - `<KpiCard />` — value, definition, semantic tone and a previous-period trend badge (risk metrics colour increases coral; volume is neutral).
 - `<PostsOverTimeChart />`, `<HashtagBarChart />`, `<SignalMixPanel />` — Recharts views built on the shared `charts/ChartCard` (legend, chart/table toggle, tooltip, empty state, refetch dimming).
 - `<ClusterTable />` — sortable ranked clusters, risk bar + tier label + per-factor strip, Graph / Ask AI actions.

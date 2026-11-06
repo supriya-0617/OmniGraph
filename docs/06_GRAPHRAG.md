@@ -23,18 +23,18 @@ Standard RAG retrieves *text chunks* similar to a query. OmniGraph retrieves a *
 
 ```
 SUBGRAPH nodes=120 of 315 in filter, edges=223 (truncated to the most relevant evidence)
-ANALYST FOCUS: ip_c01, u_161, …
+ANALYST FOCUS: net_c01, usr_161, …
 NODES
-Post p_c01_03 at=2026-11-06T00:03Z platform=X severity=0.934 text="BREAKING: officials hiding contamination…"
-User u_163 handle=@freedom_signal9400 platform=X followers=32 account_age_days=16 flagged=false
-IPAddress ip_c01 address=192.0.2.100 region=UNKNOWN-PROXY network=datacenter
+Post pst_c01_03 at=2026-11-06T00:03Z platform=X severity=0.934 text="BREAKING: officials hiding contamination…"
+User usr_163 handle=@freedom_signal9400 platform=X followers=32 account_age_days=16 flagged=false
+IPAddress net_c01 address=192.0.2.100 region=UNKNOWN-PROXY network=datacenter
 EDGES
-u_163 -POSTED-> p_c01_03 @2026-11-06T00:03Z
-u_163 -POSTED_FROM-> ip_c01
+usr_163 -POSTED-> pst_c01_03 @2026-11-06T00:03Z
+usr_163 -POSTED_FROM-> net_c01
 DETECTOR FINDINGS (deterministic OmniGraph analytics; cite by key and node IDs)
-[C1] coordination_cluster: 8 accounts on shared IP ip_c01 (192.0.2.100, network=datacenter) posted #AvalonWaterAlert 11 times within 30.9 min … risk_score=0.861 ids=[u_161, …]
+[C1] coordination_cluster: 8 accounts on shared IP net_c01 (192.0.2.100, network=datacenter) posted #AvalonWaterAlert 11 times within 30.9 min … risk_score=0.861 ids=[usr_161, …]
 [D1] near_duplicate_text: 9 posts by 8 accounts share near-identical wording within 31 min: "…" ids=[…]
-[A1] amplification: post p_c01_01 (author u_161) was retweeted by 9 accounts; 7 created <60 days ago, 4 flagged.
+[A1] amplification: post pst_c01_01 (author usr_161) was retweeted by 9 accounts; 7 created <60 days ago, 4 flagged.
 ```
 
 ## 3. Prompt rules (summary of `ai/prompts.py`)
@@ -54,7 +54,7 @@ DETECTOR FINDINGS (deterministic OmniGraph analytics; cite by key and node IDs)
 {
   "filters": { "from": "2026-10-30", "to": "2026-11-06", "platform": "ALL", "min_severity": 0, "min_density": 1 },
   "question": "Why is this cluster suspicious?",
-  "focus_node_ids": ["ip_c01", "u_161", "p_c01_01"],
+  "focus_node_ids": ["net_c01", "usr_161", "pst_c01_01"],
   "history": [{ "question": "…", "summary": "…" }]
 }
 ```
@@ -64,18 +64,18 @@ Response:
 ```json
 {
   "summary": "Eight accounts on one datacenter IP posted near-identical text…",
-  "likely_origin_node_id": "p_c01_01",
+  "likely_origin_node_id": "pst_c01_01",
   "origin_rationale": "Earliest post in the burst; the other accounts retweeted it.",
   "coordination_flags": [
-    { "signal": "Shared datacenter IP", "details": "…", "evidence_node_ids": ["ip_c01", "u_161"], "strength": "strong" }
+    { "signal": "Shared datacenter IP", "details": "…", "evidence_node_ids": ["net_c01", "usr_161"], "strength": "strong" }
   ],
-  "evidence_node_ids": ["p_c01_01", "ip_c01", "u_161"],
+  "evidence_node_ids": ["pst_c01_01", "net_c01", "usr_161"],
   "missing_evidence": ["No device or payment records"],
   "confidence": "medium",
   "confidence_note": "Shared infrastructure and timing are suggestive, not proof of common control.",
   "discarded_node_ids": [],
   "context": { "nodes_in_filter": 315, "nodes_analyzed": 120, "edges_analyzed": 223, "clusters_considered": 8,
-               "detector_findings": 20, "truncated": true, "focus_node_ids": ["ip_c01"],
+               "detector_findings": 20, "truncated": true, "focus_node_ids": ["net_c01"],
                "provider": "gemini", "model": "gemini-3.8-flash", "latency_ms": 4120 }
 }
 ```

@@ -13,6 +13,7 @@ from app.routes import (
     ai_router,
     analytics_router,
     auth_router,
+    demo_router,
     entities_router,
     graph_router,
     health_router,
@@ -21,6 +22,7 @@ from app.routes import (
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("omnigraph.main")
+logging.getLogger("neo4j.notifications").setLevel(logging.WARNING)
 
 
 @asynccontextmanager
@@ -78,6 +80,7 @@ async def neo4j_error(_: Request, error: Neo4jError):
 
 
 app.include_router(auth_router)
+app.include_router(demo_router)
 app.include_router(entities_router)
 app.include_router(graph_router)
 app.include_router(analytics_router)

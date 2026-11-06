@@ -45,7 +45,13 @@ One deterministic generator (seed 554, timestamps relative to "now") feeds **bot
 * Benign shared infrastructure: campus and office NAT addresses, including one harmless shared-hashtag burst, so analysts and the AI must distinguish coincidence from coordination (it scores 0.24 vs 0.57–0.86 for campaigns).
 * All places, organisations and handles are invented; IPs use RFC 5737 documentation ranges.
 
-Seed Aura with `python scripts/seed_data.py` (idempotent `MERGE`, batched `UNWIND`); `--reset` refreshes a stale time window and never deletes `:Account` logins.
+IDs use a dedicated namespace — `usr_` (accounts), `pst_` (posts), `tag_` (hashtags), `net_` (IP addresses) — so the dataset can be added to a database that already holds other data (e.g. the Phase 1 seed `u_001…`, `p_001…`, `h_001…`, `ip_101…`) without overwriting anything. Live demo bursts use `demo_`.
+
+Seed Aura with `python scripts/seed_data.py` (idempotent `MERGE`, batched `UNWIND`):
+
+* a **pre-flight check** refuses to write if any dataset ID already exists with different content (`--dry-run` runs only this check);
+* hashtags are matched by their unique tag, and an existing hashtag node is reused rather than modified;
+* `--reset` deletes only this dataset's namespace (to refresh the 30-day window); `--purge-demo` deletes injected `demo_*` bursts; `:Account` logins and other data are never touched.
 
 ## 7. Live stream simulation (implemented, optional)
 

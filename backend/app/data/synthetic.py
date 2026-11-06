@@ -7,6 +7,9 @@ Everything here is fictional: places (Port Avalon, Northgate), organisations
 (Meridian Bank, Solvix) and accounts are invented. Addresses use the RFC 5737
 documentation ranges (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24).
 
+IDs use their own namespace (``usr_``, ``pst_``, ``tag_``, ``net_``) so seeding never collides
+with legacy seed data (``u_001``, ``p_001``, ``h_001``, ``ip_101`` …) already in a database.
+
 The dataset contains:
 * 200 accounts across X, Telegram and Facebook (160 organic, 40 campaign).
 * 2,000 posts over the last 30 days.
@@ -167,7 +170,7 @@ def generate_dataset(now: datetime | None = None, seed: int = SEED) -> dict[str,
 
     def hashtag(tag: str) -> str:
         if tag not in hashtag_ids:
-            hashtag_id = f"h_{len(hashtag_ids) + 1:03d}"
+            hashtag_id = f"tag_{len(hashtag_ids) + 1:03d}"
             hashtag_ids[tag] = hashtag_id
             nodes["Hashtag"][hashtag_id] = {"id": hashtag_id, "tag": tag}
         return hashtag_ids[tag]
@@ -184,14 +187,14 @@ def generate_dataset(now: datetime | None = None, seed: int = SEED) -> dict[str,
     organic_count = TOTAL_USERS - sum(campaign.size for campaign in CAMPAIGNS)
     organic_ids: list[str] = []
     shared_nat = {  # benign shared infrastructure: user index -> NAT ip id
-        **{i: "ip_nat_campus" for i in (3, 47, 88, 121)},
-        **{i: "ip_nat_office" for i in (12, 64, 150)},
+        **{i: "net_nat_campus" for i in (3, 47, 88, 121)},
+        **{i: "net_nat_office" for i in (12, 64, 150)},
     }
-    add_ip("ip_nat_campus", "198.51.100.5", "US-EAST", "university")
-    add_ip("ip_nat_office", "203.0.113.5", "EU-WEST", "corporate")
+    add_ip("net_nat_campus", "198.51.100.5", "US-EAST", "university")
+    add_ip("net_nat_office", "203.0.113.5", "EU-WEST", "corporate")
     used_handles: set[str] = set()
     for index in range(organic_count):
-        user_id = f"u_{index + 1:03d}"
+        user_id = f"usr_{index + 1:03d}"
         while True:
             handle = rng.choice((
                 f"@{rng.choice(FIRST)}_{rng.choice(NOUNS)}",
@@ -201,7 +204,7 @@ def generate_dataset(now: datetime | None = None, seed: int = SEED) -> dict[str,
             if handle not in used_handles:
                 used_handles.add(handle)
                 break
-        ip_id = shared_nat.get(index, f"ip_{index + 1:03d}")
+        ip_id = shared_nat.get(index, f"net_{index + 1:03d}")
         if ip_id not in nodes["IPAddress"]:
             add_ip(ip_id, _ip_address(index), ("US-EAST", "EU-WEST", "APAC-SOUTH", "US-WEST")[index % 4], "residential")
         nodes["User"][user_id] = {
@@ -221,12 +224,12 @@ def generate_dataset(now: datetime | None = None, seed: int = SEED) -> dict[str,
     campaign_members: dict[str, list[str]] = {}
     user_counter = organic_count
     for c_index, campaign in enumerate(CAMPAIGNS, start=1):
-        ip_id = f"ip_c{c_index:02d}"
+        ip_id = f"net_c{c_index:02d}"
         add_ip(ip_id, campaign.ip_address, campaign.geo_region, campaign.network_type)
         members = []
         for m_index in range(campaign.size):
             user_counter += 1
-            user_id = f"u_{user_counter:03d}"
+            user_id = f"usr_{user_counter:03d}"
             handle = f"@{rng.choice(BOT_STEMS)}_{rng.choice(NOUNS)}{rng.randint(1000, 9999)}"
             while handle in used_handles:
                 handle = f"@{rng.choice(BOT_STEMS)}_{rng.choice(NOUNS)}{rng.randint(1000, 9999)}"
@@ -252,7 +255,7 @@ def generate_dataset(now: datetime | None = None, seed: int = SEED) -> dict[str,
         for m_index, user_id in enumerate(members):
             for _ in range(1 if m_index == 0 or rng.random() < 0.6 else 2):
                 post_number += 1
-                post_id = f"p_c{c_index:02d}_{post_number:02d}"
+                post_id = f"pst_c{c_index:02d}_{post_number:02d}"
                 timestamp = burst_start + timedelta(minutes=offset)
                 offset = min(offset + step * rng.uniform(0.6, 1.4), campaign.burst_minutes)
                 text = campaign.templates[0] if m_index == 0 else rng.choice(campaign.templates)
@@ -280,12 +283,12 @@ def generate_dataset(now: datetime | None = None, seed: int = SEED) -> dict[str,
     # Benign coincidence: students behind one campus NAT posting about the same festival.
     festival_start = now - timedelta(days=4, hours=3)
     benign = (
-        ("u_004", "Photos from the harbour festival this morning, crowds are bigger than last year.", 0),
-        ("u_048", "The harbour festival food stalls are packed, go early if you can.", 14),
-        ("u_089", "Live music at the harbour festival main stage starts at noon.", 31),
+        ("usr_004", "Photos from the harbour festival this morning, crowds are bigger than last year.", 0),
+        ("usr_048", "The harbour festival food stalls are packed, go early if you can.", 14),
+        ("usr_089", "Live music at the harbour festival main stage starts at noon.", 31),
     )
     for index, (author_id, text, minutes) in enumerate(benign, start=1):
-        add_post(f"p_b{index:02d}", author_id, festival_start + timedelta(minutes=minutes),
+        add_post(f"pst_b{index:02d}", author_id, festival_start + timedelta(minutes=minutes),
                  round(0.03 + index * 0.01, 3), text, ["#HarborFestival"])
 
     organic_post_ids: list[str] = []
@@ -295,7 +298,7 @@ def generate_dataset(now: datetime | None = None, seed: int = SEED) -> dict[str,
         text = template.format(issue=rng.choice(ISSUES), event=rng.choice(EVENTS))
         severity = round(min(0.99, max(0.0, base_severity + rng.gauss(0, 0.12) + (rng.random() ** 6) * 0.5)), 3)
         timestamp = now - timedelta(minutes=rng.randint(5, WINDOW_DAYS * 24 * 60))
-        post_id = f"p_{index + 1:05d}"
+        post_id = f"pst_{index + 1:05d}"
         add_post(post_id, author_id, timestamp, severity, text, rng.sample(ORGANIC_TAGS, rng.randint(1, 2)))
         organic_post_ids.append(post_id)
 
@@ -319,7 +322,7 @@ def generate_dataset(now: datetime | None = None, seed: int = SEED) -> dict[str,
 
     for c_index, campaign in enumerate(CAMPAIGNS, start=1):
         members = campaign_members[campaign.key]
-        origin_post = f"p_c{c_index:02d}_01"
+        origin_post = f"pst_c{c_index:02d}_01"
         origin_time = nodes["Post"][origin_post]["timestamp"]
         for m_index, member in enumerate(members[1:], start=1):
             add_edge(member, origin_post, "RETWEETED", timestamp=min(now, origin_time + timedelta(minutes=m_index * 2 + 1)))
@@ -342,7 +345,7 @@ def live_posts(now: datetime, rng: random.Random, user_ids: list[str], count: in
     for _ in range(count):
         template, base = rng.choice(ORGANIC_TEMPLATES)
         posts.append({
-            "id": f"p_live_{now.strftime('%Y%m%d%H%M%S')}_{rng.randint(1000, 9999)}",
+            "id": f"pst_live_{now.strftime('%Y%m%d%H%M%S')}_{rng.randint(1000, 9999)}",
             "author_id": rng.choice(user_ids),
             "text": template.format(issue=rng.choice(ISSUES), event=rng.choice(EVENTS)),
             "timestamp": now,
@@ -351,3 +354,79 @@ def live_posts(now: datetime, rng: random.Random, user_ids: list[str], count: in
             "hashtags": rng.sample(ORGANIC_TAGS, rng.randint(1, 2)),
         })
     return posts
+
+
+# ---------------------------------------------------------------------- live demo burst
+DEMO_TEMPLATES = (
+    "[DEMO] URGENT: the Harbour Line bridge is closing tonight for 'repairs'. Leave the city now and share this!",
+    "[DEMO] URGENT!! Harbour Line bridge closing TONIGHT for repairs - leave the city now, share this",
+    "[DEMO] The Harbour Line bridge closes tonight. They call it repairs. Leave now and share before it's removed.",
+)
+
+
+def demo_burst(platform: str, now: datetime | None = None, rng: random.Random | None = None) -> dict[str, Any]:
+    """A fresh coordinated burst for ``POST /demo/coordination`` (live walkthrough).
+
+    Ten new accounts on one datacenter IP post near-identical text under a new hashtag
+    within ~6 minutes ending *now*, then retweet the seeding post. Text is prefixed with
+    "[DEMO]" so injected data can never be mistaken for the seeded dataset.
+    """
+    now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    rng = rng or random.Random()
+    scenario = f"{rng.getrandbits(40):010x}"
+    ip_id, hashtag_id = f"demo_ip_{scenario}", f"demo_tag_{scenario}"
+    address = f"192.0.2.{1 + int(scenario[:4], 16) % 254}"
+    tag = f"#DemoBurst{scenario[:6]}"
+    start = now - timedelta(minutes=6)
+    users, posts, edges = [], [], []
+
+    for index in range(10):
+        user_id = f"demo_user_{scenario}_{index + 1:02d}"
+        post_id = f"demo_post_{scenario}_{index + 1:02d}"
+        posted_at = start + timedelta(seconds=index * 34 + rng.randint(0, 15))
+        users.append({
+            "id": user_id,
+            "handle": f"@{rng.choice(BOT_STEMS)}_{rng.choice(NOUNS)}{rng.randint(1000, 9999)}",
+            "platform": platform,
+            "created_at": now - timedelta(days=rng.randint(3, 20)),
+            "follower_count": rng.randint(0, 40),
+            "ip_hash": ip_id,
+            "flagged": index > 0 and rng.random() < 0.5,
+        })
+        posts.append({
+            "id": post_id,
+            "text": DEMO_TEMPLATES[0] if index == 0 else rng.choice(DEMO_TEMPLATES),
+            "timestamp": posted_at,
+            "platform": platform,
+            "severity": round(rng.uniform(0.82, 0.95), 3),
+            "language": "en",
+        })
+        edges += [
+            {"source": user_id, "target": ip_id, "type": "POSTED_FROM", "properties": {"timestamp": start}},
+            {"source": user_id, "target": post_id, "type": "POSTED", "properties": {"timestamp": posted_at}},
+            {"source": post_id, "target": hashtag_id, "type": "MENTIONS", "properties": {}},
+        ]
+    origin = posts[0]["id"]
+    for index, user in enumerate(users[1:], start=1):
+        edges.append({"source": user["id"], "target": origin, "type": "RETWEETED",
+                      "properties": {"timestamp": min(now, posts[0]["timestamp"] + timedelta(seconds=30 * index))}})
+
+    times = [post["timestamp"] for post in posts]
+    return {
+        "ip": {"id": ip_id, "address": address, "geo_region": "SIMULATED-NETWORK", "network_type": "datacenter"},
+        "hashtag": {"id": hashtag_id, "tag": tag},
+        "users": users,
+        "posts": posts,
+        "edges": edges,
+        "result": {
+            "scenario_id": scenario,
+            "shared_ip": address,
+            "hashtag": tag,
+            "platform": platform,
+            "accounts_created": len(users),
+            "posts_created": len(posts),
+            "window_seconds": int((max(times) - min(times)).total_seconds()),
+            "user_ids": [user["id"] for user in users],
+            "post_ids": [post["id"] for post in posts],
+        },
+    }

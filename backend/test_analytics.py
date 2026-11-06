@@ -74,9 +74,9 @@ class ClusterTests(unittest.TestCase):
 
     def test_six_campaigns_detected_and_benign_nat_ranks_last(self):
         clusters = memory_store.coordination_clusters(GraphFilters(min_density=2))
-        campaign_ips = {cluster["ip_id"] for cluster in clusters if cluster["ip_id"].startswith("ip_c")}
+        campaign_ips = {cluster["ip_id"] for cluster in clusters if cluster["ip_id"].startswith("net_c")}
         self.assertEqual(len(campaign_ips), 6)
-        benign = next(cluster for cluster in clusters if cluster["ip_id"] == "ip_nat_campus")
+        benign = next(cluster for cluster in clusters if cluster["ip_id"] == "net_nat_campus")
         self.assertEqual(clusters[-1]["id"], benign["id"])
         self.assertLess(benign["risk_score"], 0.4)
 

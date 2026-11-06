@@ -20,7 +20,7 @@ from app.analytics import (
     severity_bucket_label,
     trend,
 )
-from app.data.synthetic import generate_dataset
+from app.data.synthetic import demo_burst, generate_dataset
 from app.schemas.filters import GraphFilters
 
 
@@ -251,6 +251,20 @@ class MemoryGraphStore:
             ]
             self._rebuild_edge_keys()
             return True
+
+    def create_demo_burst(self, platform: str) -> dict[str, Any]:
+        """Inject a live coordinated burst (POST /demo/coordination) using the shared builder."""
+        burst = demo_burst(platform)
+        with self._lock:
+            self._create_entity("IPAddress", burst["ip"])
+            self._create_entity("Hashtag", burst["hashtag"])
+            for user in burst["users"]:
+                self._create_entity("User", user)
+            for post in burst["posts"]:
+                self._create_entity("Post", post)
+            for edge in burst["edges"]:
+                self._add_edge(edge["source"], edge["target"], edge["type"], edge["properties"])
+        return burst["result"]
 
     # ------------------------------------------------------------------ analytics
     def coordination_clusters(self, filters: GraphFilters) -> list[dict[str, Any]]:

@@ -201,7 +201,7 @@ class ContextExtractionTests(unittest.TestCase):
         self.assertIn("[C1]", text)
 
     def test_focus_nodes_are_prioritised(self):
-        organic_post = next(n["id"] for n in self.graph["nodes"] if n["label"] == "Post" and n["id"].startswith("p_0"))
+        organic_post = next(n["id"] for n in self.graph["nodes"] if n["label"] == "Post" and n["id"].startswith("pst_0"))
         context = build_context(self.graph, self.clusters, [organic_post])
         self.assertEqual(context.nodes[0]["id"], organic_post)
         self.assertEqual(context.focus_node_ids, [organic_post])
