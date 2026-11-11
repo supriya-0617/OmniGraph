@@ -62,6 +62,7 @@ export interface PublicStats {
 export interface HealthStatus {
   status: 'online' | 'degraded';
   storage_mode: 'memory' | 'neo4j' | 'neo4j_unavailable';
+  auth_database?: { configured: boolean; connected: boolean };
   dev_account_enabled: boolean;
   environment: string;
   ai: { configured: boolean; provider: string; model: string };

@@ -20,15 +20,15 @@ The dashboard combines KPIs, a ranked coordination table, the investigation work
 | Card | Field | Definition | Trend colour |
 |---|---|---|---|
 | Posts in filter | `total_posts` (+ `total_accounts`, `high_severity_posts` in the caption) | Posts matching the filters | neutral |
-| Flagged accounts | `total_flagged_users` | Distinct flagged users who posted or retweeted a matching post | increase = coral |
-| Coordinated clusters | `coordinated_clusters` | Rows returned by `/analytics/clusters` | increase = coral |
-| Average severity | `avg_severity` | Mean post severity, shown as % | increase = coral |
+| Flagged accounts | `total_flagged_users` | Distinct flagged users who posted or retweeted a matching post | increase = crimson |
+| Coordinated clusters | `coordinated_clusters` | Rows returned by `/analytics/clusters` | increase = crimson |
+| Average severity | `avg_severity` | Mean post severity, shown as % | increase = crimson |
 
 **Trends** — when both `from` and `to` are set, the API also computes the same metrics for the immediately preceding window of equal length and returns `trends.<metric> = { previous, delta_pct }` (`delta_pct` is `null` when the previous value is 0). Without a closed date range `trends` is `null`.
 
 ## 4. Charts
 
-All chart colours come from `components/dashboard/charts/chartTheme.ts` and were **validated** (lightness band, chroma floor, colour-blind separation, contrast) against the dark panel surface `#0b0f18`. UI accent colours are reserved for chrome. Every chart has a Chart/Table toggle (accessible table view), tooltips, empty states, initial skeletons, and dims instead of flashing on refetch.
+All chart colours come from `components/dashboard/charts/chartTheme.ts` and were **validated** (lightness band, chroma floor, colour-blind separation, contrast) against the panel surface `#20241F` (dark mode). The UI accents are deliberately desaturated (below the data-mark chroma floor), so marks use slightly richer steps of the same hue families: platforms X `#518AC4` (steel) · Telegram `#B68737` (brass) · Facebook `#AA6A9C` (mauve); posts `#518AC4` vs high-severity `#C25D58`; severity ramp `#84473E → #EE9186` (single crimson hue, ordinal-validated). UI accent colours are reserved for chrome. Every chart has a Chart/Table toggle (accessible table view), tooltips, empty states, initial skeletons, and dims instead of flashing on refetch.
 
 | Component | Data | Form |
 |---|---|---|

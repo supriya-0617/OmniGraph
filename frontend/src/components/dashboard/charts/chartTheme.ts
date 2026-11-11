@@ -1,24 +1,33 @@
 /**
- * Chart colours, validated with the dataviz palette checker against the dark
- * panel surface (#0b0f18): lightness band, chroma floor, CVD + normal-vision
- * separation and contrast all pass. UI accent tokens (--og-cyan …) are brighter
- * and reserved for chrome; data marks use these steps.
+ * Chart colours for the "Forensic Olive" theme, validated with the dataviz
+ * palette checker against the panel surface (#20241F, dark mode): lightness
+ * band, chroma floor, CVD + normal-vision separation and contrast all pass.
+ *
+ * The UI accents in index.css (--og-olive, --og-brass …) are deliberately
+ * desaturated and sit below the data-mark chroma floor, so data marks use these
+ * slightly richer steps of the same hue families. Recharts / SVG attributes
+ * cannot resolve CSS variables, hence concrete values here.
  */
 export const CHART = {
-  surface: '#0b0f18',
-  grid: 'rgba(150, 170, 215, 0.09)',
-  axis: '#5a6379',
-  tick: '#8d96ab',
-  text: '#e9edf5',
+  surface: '#20241F',
+  grid: 'rgba(166, 170, 157, 0.09)',
+  axis: '#4A5147',
+  tick: '#8E9387',
+  text: '#E5E5D9',
+  muted: '#A6AA9D',
+  tooltipBg: 'rgba(17, 22, 19, 0.96)',
+  tooltipBorder: '#464D44',
+  cursorLine: 'rgba(166, 161, 122, 0.45)',   // olive crosshair
+  cursorFill: 'rgba(166, 161, 122, 0.06)',   // olive hover band
   // categorical, fixed order — colour follows the entity, never its rank
-  series1: '#16a6c2',
-  series2: '#8a6be6',
-  series3: '#c4842c',
+  series1: '#518AC4', // steel
+  series2: '#B68737', // brass
+  series3: '#AA6A9C', // mauve
   // posts vs high-severity posts
-  posts: '#16a6c2',
-  highSeverity: '#e65a45',
-  // ordinal severity ramp, low → high (validated --ordinal)
-  severityRamp: ['#7a3d34', '#9a473b', '#bb5142', '#dc5c49', '#f7735e'],
+  posts: '#518AC4',
+  highSeverity: '#C25D58',
+  // ordinal severity ramp, low → high (validated --ordinal, single crimson hue)
+  severityRamp: ['#84473E', '#A1564C', '#BE665C', '#D8796F', '#EE9186'],
 };
 
 /** Stable platform → colour mapping (does not change when filters remove a platform). */
@@ -28,7 +37,7 @@ export const PLATFORM_COLORS: Record<string, string> = {
   Facebook: CHART.series3,
 };
 
-export const platformColor = (platform: string) => PLATFORM_COLORS[platform] ?? '#5a6379';
+export const platformColor = (platform: string) => PLATFORM_COLORS[platform] ?? CHART.axis;
 
 export const axisProps = {
   stroke: CHART.axis,

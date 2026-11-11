@@ -55,7 +55,7 @@ export const LoginPage: React.FC = () => {
   return (
     <AuthLayout
       eyebrow="Analyst access"
-      title={<>Sign in to the <span className="og-serif" style={{ color: 'var(--og-cyan)' }}>workspace</span></>}
+      title={<>Sign in to the <span className="og-serif" style={{ color: 'var(--og-olive)' }}>workspace</span></>}
       subtitle="Use your OmniGraph analyst account. Sessions are signed with JWT and expire automatically."
     >
       {notice && !message && (

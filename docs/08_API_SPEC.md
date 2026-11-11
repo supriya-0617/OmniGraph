@@ -26,7 +26,7 @@ Validates the bearer token (used to restore a session on page load). `200 { "id"
 ## Public
 
 ### `GET /health`
-`{ status: "online" | "degraded", storage_mode: "memory" | "neo4j" | "neo4j_unavailable", dev_account_enabled, environment, ai: { configured, provider, model }, simulator_enabled }`. Never exposes secrets.
+`{ status: "online" | "degraded", storage_mode: "memory" | "neo4j" | "neo4j_unavailable", auth_database: { configured, connected }, dev_account_enabled, environment, ai: { configured, provider, model }, simulator_enabled }`. Never exposes secrets.
 
 ### `GET /public/stats`
 Aggregate counts for the landing page, cached 60 s: `{ storage_mode, entities: { User, Post, Hashtag, IPAddress }, coordinated_clusters }`. No handles, text or addresses. `503` when the configured database is down.
@@ -59,6 +59,9 @@ Query params: `from`, `to`, `platform`, `min_severity`, `min_density`.
 The canvas response is bounded to the newest 120 matching posts (plus their connected entities and relationships); summary and cluster analytics still use the full filtered dataset.
 Node IDs are the stable string values of each entity's `id` property. `props.id` matches the top-level node `id`; edge `source` and `target` values refer to node IDs in the same response. The frontend uses these IDs unchanged for cluster navigation and AI evidence highlighting. Node properties and relationship timestamps are serialized as JSON values.
 ```json
+
+Registration and login store analyst accounts in MongoDB. They do not create
+`Account` nodes in Neo4j; Neo4j remains reserved for the investigation graph.json
 // response
 {
   "nodes": [
@@ -113,7 +116,7 @@ This endpoint does not inspect Wi-Fi, read client IP addresses, or collect netwo
 ## AI / GraphRAG
 
 ### `GET /ai/status`
-`{ "configured": true, "provider": "gemini", "model": "gemini-3.8-flash", "detail": null }`; `detail` explains what is missing when `configured` is false.
+`{ "configured": true, "provider": "vertex", "model": "gemini-3.8-flash", "detail": null }`; `detail` explains what is missing when `configured` is false.
 
 ### `POST /ai/query`
 Request `{ filters, question, focus_node_ids?, history? }`; response `{ summary, likely_origin_node_id, origin_rationale, coordination_flags[{signal, details, evidence_node_ids, strength}], evidence_node_ids, missing_evidence, confidence, confidence_note, discarded_node_ids, context }`. Full contract, limits and status codes (200 / 422 / 429 / 502 / 503) are in `06_GRAPHRAG.md` section 4.

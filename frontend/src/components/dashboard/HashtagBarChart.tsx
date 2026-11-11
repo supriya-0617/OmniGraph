@@ -20,7 +20,7 @@ export const HashtagBarChart: React.FC<Props> = ({ data, updating }) => {
     <ChartCard
       kicker="Narratives"
       title="Top hashtags"
-      icon={<Hash className="w-4 h-4 text-accent-violet" strokeWidth={1.75} aria-hidden="true" />}
+      icon={<Hash className="w-4 h-4 text-accent-lavender" strokeWidth={1.75} aria-hidden="true" />}
       meta={<span className="og-badge hidden sm:inline-flex">Distinct posts</span>}
       updating={updating}
       className="h-full"
@@ -44,7 +44,7 @@ export const HashtagBarChart: React.FC<Props> = ({ data, updating }) => {
                 tick={{ fill: CHART.text, fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }}
               />
               <Tooltip
-                cursor={{ fill: 'rgba(34,225,255,0.05)' }}
+                cursor={{ fill: CHART.cursorFill }}
                 content={({ active, payload }) => (
                   <ChartTooltip
                     active={active}

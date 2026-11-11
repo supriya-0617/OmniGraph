@@ -15,11 +15,11 @@ export const LoadingSpinner: React.FC<Props> = ({ message = 'Loading…', size =
       <span className="relative inline-block" style={{ width: px, height: px }} aria-hidden="true">
         <span
           className="absolute inset-0 rounded-full"
-          style={{ border: '1.5px solid var(--og-border-strong)', borderTopColor: 'var(--og-cyan)', animation: 'og-spin 0.9s linear infinite' }}
+          style={{ border: '1.5px solid var(--og-border-strong)', borderTopColor: 'var(--og-olive)', animation: 'og-spin 0.9s linear infinite' }}
         />
         <span
           className="absolute rounded-full"
-          style={{ inset: px * 0.32, background: 'var(--og-cyan)', boxShadow: '0 0 12px var(--og-cyan)' }}
+          style={{ inset: px * 0.32, background: 'var(--og-olive)', boxShadow: '0 0 12px var(--og-olive)' }}
         />
       </span>
       {message && <span className="og-kicker">{message}</span>}

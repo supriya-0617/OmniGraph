@@ -10,10 +10,10 @@ interface Props {
 }
 
 const TONES = {
-  error: { color: 'var(--og-coral)', bg: 'rgba(255, 112, 92, 0.08)', Icon: AlertTriangle, label: 'Error' },
-  warning: { color: 'var(--og-amber)', bg: 'rgba(255, 184, 77, 0.08)', Icon: AlertTriangle, label: 'Warning' },
-  success: { color: 'var(--og-mint)', bg: 'rgba(92, 242, 176, 0.08)', Icon: CheckCircle2, label: 'Done' },
-  info: { color: 'var(--og-cyan)', bg: 'rgba(34, 225, 255, 0.07)', Icon: Info, label: 'Notice' },
+  error: { color: 'var(--og-crimson)', bg: 'rgb(var(--og-crimson-rgb) / 0.08)', Icon: AlertTriangle, label: 'Error' },
+  warning: { color: 'var(--og-orange)', bg: 'rgb(var(--og-orange-rgb) / 0.08)', Icon: AlertTriangle, label: 'Warning' },
+  success: { color: 'var(--og-sage)', bg: 'rgb(var(--og-sage-rgb) / 0.08)', Icon: CheckCircle2, label: 'Done' },
+  info: { color: 'var(--og-olive)', bg: 'rgb(var(--og-olive-rgb) / 0.07)', Icon: Info, label: 'Notice' },
 };
 
 export const NotificationBanner: React.FC<Props> = ({ type = 'error', message, title, onClose, action }) => {
@@ -44,7 +44,7 @@ export const NotificationBanner: React.FC<Props> = ({ type = 'error', message, t
           type="button"
           onClick={onClose}
           aria-label="Dismiss notification"
-          className="shrink-0 rounded p-1 text-ink/60 hover:text-ink hover:bg-white/5 transition-colors"
+          className="shrink-0 rounded p-1 text-ink/60 hover:text-ink hover:bg-ink/5 transition-colors"
         >
           <X className="w-3.5 h-3.5" aria-hidden="true" />
         </button>

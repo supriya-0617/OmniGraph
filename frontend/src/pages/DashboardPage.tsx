@@ -36,7 +36,7 @@ const SectionHeading: React.FC<{ index: string; title: string; children?: React.
   </div>
 );
 
-const severityTone = (value: number) => (value >= 0.6 ? 'coral' : value >= 0.4 ? 'amber' : 'mint');
+const severityTone = (value: number) => (value >= 0.6 ? 'crimson' : value >= 0.4 ? 'orange' : 'sage');
 
 const NODE_QUESTIONS: Record<string, (label: string) => string> = {
   User: (label) => `What role does ${label} play in this network, and does its behaviour look coordinated?`,
@@ -269,9 +269,9 @@ export const DashboardPage: React.FC = () => {
         {/* ------------------------------------------------------------ overview */}
         <section aria-label="Key metrics" aria-busy={isLoading}>
           <SectionHeading index="01" title="Threat overview">
-            {summary?.density_scoped && <span className="og-badge-amber" title="Every metric is limited to posts inside qualifying coordination clusters">Density-scoped</span>}
-            <span className={isLoading ? 'og-badge-cyan' : loadError ? 'og-badge-danger' : 'og-badge'}>
-              <span className={`og-dot ${isLoading ? 'og-dot-live' : ''}`} style={{ color: isLoading ? 'var(--og-cyan)' : loadError ? 'var(--og-coral)' : 'var(--og-mint)' }} />
+            {summary?.density_scoped && <span className="og-badge-orange" title="Every metric is limited to posts inside qualifying coordination clusters">Density-scoped</span>}
+            <span className={isLoading ? 'og-badge-olive' : loadError ? 'og-badge-crimson' : 'og-badge'}>
+              <span className={`og-dot ${isLoading ? 'og-dot-live' : ''}`} style={{ color: isLoading ? 'var(--og-olive)' : loadError ? 'var(--og-crimson)' : 'var(--og-sage)' }} />
               {statusLabel}
             </span>
             <button type="button" className="og-icon-btn" onClick={() => setReloadKey((key) => key + 1)} disabled={isLoading || !token} aria-label="Refresh data" title="Refresh">
@@ -284,7 +284,7 @@ export const DashboardPage: React.FC = () => {
               title="Posts in filter"
               value={summary ? summary.total_posts.toLocaleString() : '—'}
               definition={summary ? `${summary.total_accounts.toLocaleString()} distinct authors · ${summary.high_severity_posts.toLocaleString()} high-severity` : 'Posts matching date, platform and severity'}
-              tone="cyan"
+              tone="brass"
               icon={<MessageSquare className="w-4 h-4" strokeWidth={1.75} />}
               trend={trends?.total_posts}
               neutral
@@ -295,7 +295,7 @@ export const DashboardPage: React.FC = () => {
               title="Flagged accounts"
               value={summary ? summary.total_flagged_users.toLocaleString() : '—'}
               definition="Distinct flagged users who posted or retweeted matching posts"
-              tone="amber"
+              tone="crimson"
               icon={<Users className="w-4 h-4" strokeWidth={1.75} />}
               trend={trends?.total_flagged_users}
               higherIsWorse
@@ -306,7 +306,7 @@ export const DashboardPage: React.FC = () => {
               title="Coordinated clusters"
               value={summary ? summary.coordinated_clusters.toLocaleString() : '—'}
               definition={`Shared IP + hashtag within 60 min, ≥ ${filters.minDensity} accounts`}
-              tone="coral"
+              tone="olive"
               icon={<ShieldAlert className="w-4 h-4" strokeWidth={1.75} />}
               trend={trends?.coordinated_clusters}
               higherIsWorse
@@ -317,7 +317,7 @@ export const DashboardPage: React.FC = () => {
               title="Average severity"
               value={summary ? `${Math.round(summary.avg_severity * 100)}%` : '—'}
               definition="Mean post severity score (0–100%)"
-              tone={summary ? severityTone(summary.avg_severity) : 'mint'}
+              tone={summary ? severityTone(summary.avg_severity) : 'sage'}
               icon={<Gauge className="w-4 h-4" strokeWidth={1.75} />}
               trend={trends?.avg_severity}
               higherIsWorse
@@ -330,7 +330,7 @@ export const DashboardPage: React.FC = () => {
         <section aria-label="Coordinated clusters" aria-busy={isLoading}>
           <SectionHeading index="02" title="Coordination signals">
             {selectedClusterId && (
-              <button type="button" className="og-badge-cyan" onClick={() => { resetInvestigation(); setFocus(null); }}>
+              <button type="button" className="og-badge-olive" onClick={() => { resetInvestigation(); setFocus(null); }}>
                 Clear selection <X className="w-3 h-3" aria-hidden="true" />
               </button>
             )}
@@ -338,7 +338,7 @@ export const DashboardPage: React.FC = () => {
               type="button"
               onClick={handleGenerateDemo}
               disabled={!token || isGeneratingDemo || isLoading}
-              className="og-btn-ghost min-h-[32px] hover:!text-accent-amber hover:!border-accent-amber/50"
+              className="og-btn-ghost min-h-[32px] hover:!text-accent-oxide hover:!border-accent-oxide/50"
               title="Injects 10 new [DEMO] accounts on one datacenter IP posting near-identical text right now — for live walkthroughs. Uses the selected platform (X when All)."
             >
               <Radio className={`h-3.5 w-3.5 ${isGeneratingDemo ? 'animate-pulse' : ''}`} aria-hidden="true" />
@@ -362,14 +362,14 @@ export const DashboardPage: React.FC = () => {
         <section ref={investigationRef} aria-label="Investigation workspace" className="scroll-mt-32">
           <SectionHeading index="03" title="Investigation">
             {highlightIds.length > 0 && (
-              <button type="button" className="og-badge-violet" onClick={resetInvestigation}>
+              <button type="button" className="og-badge-lavender" onClick={resetInvestigation}>
                 {highlightIds.length} highlighted <X className="w-3 h-3" aria-hidden="true" />
               </button>
             )}
           </SectionHeading>
           {graphNotice && (
             <p className="mb-3 flex items-start gap-2 text-[12px] text-ink/70" role="status">
-              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-accent-cyan" aria-hidden="true" />
+              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-accent-olive" aria-hidden="true" />
               {graphNotice}
               <button type="button" className="text-ink/40 hover:text-ink ml-1" onClick={() => setGraphNotice(null)} aria-label="Dismiss"><X className="w-3 h-3" /></button>
             </p>

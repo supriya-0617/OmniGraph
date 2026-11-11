@@ -10,13 +10,15 @@ type Kind = 'user' | 'post' | 'tag' | 'ip' | 'bot';
 interface Node { x: number; y: number; vx: number; vy: number; r: number; kind: Kind; cluster: boolean; phase: number }
 interface Link { a: number; b: number; cluster: boolean }
 
+// Canvas cannot read CSS variables: these mirror the entity tokens in index.css.
 const COLORS: Record<Kind, string> = {
-  user: '#5cf2b0',
-  post: '#ffb84d',
-  tag: '#a78bfa',
-  ip: '#7ea6ff',
-  bot: '#ff705c',
+  user: '#84977B', // sage
+  post: '#C5A16B', // brass
+  tag: '#9B8AB4',  // lavender
+  ip: '#8295A6',   // steel
+  bot: '#B85C58',  // crimson (coordinated)
 };
+const RGB = { olive: '166, 161, 122', crimson: '184, 92, 88', muted: '166, 170, 157' } as const;
 
 function mulberry32(seed: number) {
   return () => {
@@ -152,11 +154,11 @@ export const HeroNetwork: React.FC = () => {
       // radar sweep
       const sweepX = ((t * 0.11) % 1.3) * width - width * 0.15;
       const gradient = ctx.createLinearGradient(sweepX - 120, 0, sweepX, 0);
-      gradient.addColorStop(0, 'rgba(34,225,255,0)');
-      gradient.addColorStop(1, 'rgba(34,225,255,0.07)');
+      gradient.addColorStop(0, `rgba(${RGB.olive}, 0)`);
+      gradient.addColorStop(1, `rgba(${RGB.olive}, 0.07)`);
       ctx.fillStyle = gradient;
       ctx.fillRect(sweepX - 120, 0, 120, height);
-      ctx.fillStyle = 'rgba(34,225,255,0.35)';
+      ctx.fillStyle = `rgba(${RGB.olive}, 0.35)`;
       ctx.fillRect(sweepX, 0, 1, height);
 
       for (const link of links) {
@@ -165,8 +167,8 @@ export const HeroNetwork: React.FC = () => {
         const lit = hovered >= 0 && neighbors.has(link.a) && neighbors.has(link.b);
         const dim = hovered >= 0 && !lit;
         ctx.strokeStyle = link.cluster
-          ? `rgba(255,112,92,${dim ? 0.08 : 0.32 + Math.sin(t * 2.2) * 0.12})`
-          : lit ? 'rgba(34,225,255,0.7)' : `rgba(150,170,215,${dim ? 0.04 : 0.14})`;
+          ? `rgba(${RGB.crimson}, ${dim ? 0.08 : 0.32 + Math.sin(t * 2.2) * 0.12})`
+          : lit ? `rgba(${RGB.olive}, 0.7)` : `rgba(${RGB.muted}, ${dim ? 0.04 : 0.14})`;
         ctx.lineWidth = lit ? 1.4 : 1;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
@@ -182,7 +184,7 @@ export const HeroNetwork: React.FC = () => {
         ctx.globalAlpha = dim ? 0.18 : 1;
         if (node.cluster || scanned || index === hovered) {
           ctx.beginPath();
-          ctx.fillStyle = node.cluster ? 'rgba(255,112,92,0.14)' : 'rgba(34,225,255,0.16)';
+          ctx.fillStyle = node.cluster ? `rgba(${RGB.crimson}, 0.14)` : `rgba(${RGB.olive}, 0.16)`;
           ctx.arc(node.x, node.y, radius * 3, 0, Math.PI * 2);
           ctx.fill();
         }
@@ -206,14 +208,14 @@ export const HeroNetwork: React.FC = () => {
       // cluster callout
       const ip = nodes.find((node) => node.kind === 'ip' && node.cluster);
       if (ip && hovered < 0) {
-        ctx.strokeStyle = 'rgba(255,112,92,0.55)';
+        ctx.strokeStyle = `rgba(${RGB.crimson}, 0.55)`;
         ctx.setLineDash([3, 4]);
         ctx.beginPath();
         ctx.arc(ip.x, ip.y, 98 + Math.sin(t * 1.4) * 4, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.font = '600 10px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#ff705c';
+        ctx.fillStyle = COLORS.bot;
         ctx.fillText('SHARED IP · 8 ACCOUNTS · 31 MIN', Math.min(ip.x + 70, width - 230), Math.max(ip.y - 100, 18));
       }
     };

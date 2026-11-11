@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import { Trend } from '../../types/analytics';
 
-type Tone = 'cyan' | 'mint' | 'coral' | 'amber' | 'violet';
+type Tone = 'olive' | 'oxide' | 'brass' | 'sage' | 'crimson' | 'orange' | 'lavender';
 
 interface Props {
   index: string;
@@ -21,11 +21,13 @@ interface Props {
 }
 
 const TONE_VAR: Record<Tone, string> = {
-  cyan: 'var(--og-cyan)',
-  mint: 'var(--og-mint)',
-  coral: 'var(--og-coral)',
-  amber: 'var(--og-amber)',
-  violet: 'var(--og-violet)',
+  olive: 'var(--og-olive)',
+  oxide: 'var(--og-oxide)',
+  brass: 'var(--og-brass)',
+  sage: 'var(--og-sage)',
+  crimson: 'var(--og-crimson)',
+  orange: 'var(--og-orange)',
+  lavender: 'var(--og-lavender)',
 };
 
 const TrendBadge: React.FC<{ trend: Trend; higherIsWorse: boolean; neutral: boolean; label: string }> = ({ trend, higherIsWorse, neutral, label }) => {
@@ -35,7 +37,7 @@ const TrendBadge: React.FC<{ trend: Trend; higherIsWorse: boolean; neutral: bool
   const up = trend.delta_pct > 0;
   const flat = Math.abs(trend.delta_pct) < 0.5;
   const bad = !flat && (up === higherIsWorse);
-  const color = flat || neutral ? 'var(--og-text)' : bad ? 'var(--og-coral)' : 'var(--og-mint)';
+  const color = flat || neutral ? 'var(--og-text)' : bad ? 'var(--og-crimson)' : 'var(--og-sage)';
   const Icon = flat ? Minus : up ? ArrowUpRight : ArrowDownRight;
   return (
     <span className="inline-flex items-center gap-1 text-[11px] font-mono" style={{ color }} title={`Previous period: ${trend.previous}`}>
@@ -47,7 +49,7 @@ const TrendBadge: React.FC<{ trend: Trend; higherIsWorse: boolean; neutral: bool
 };
 
 export const KpiCard: React.FC<Props> = ({
-  index, title, value, definition, tone = 'cyan', icon, trend, higherIsWorse = false, neutral = false, trendLabel = 'prev. period', loading,
+  index, title, value, definition, tone = 'olive', icon, trend, higherIsWorse = false, neutral = false, trendLabel = 'prev. period', loading,
 }) => {
   const accent = TONE_VAR[tone];
   return (

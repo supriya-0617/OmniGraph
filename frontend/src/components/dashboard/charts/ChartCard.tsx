@@ -39,7 +39,7 @@ export const ChartCard: React.FC<Props> = ({ title, kicker, icon, meta, legend, 
                   aria-pressed={view === option}
                   aria-label={`Show ${option}`}
                   className="grid place-items-center w-7 h-6 rounded transition-colors"
-                  style={view === option ? { background: 'rgba(34,225,255,0.12)', color: 'var(--og-cyan)' } : { color: 'var(--og-muted)' }}
+                  style={view === option ? { background: 'rgb(var(--og-olive-rgb) / 0.12)', color: 'var(--og-olive)' } : { color: 'var(--og-muted)' }}
                 >
                   {option === 'chart' ? <BarChart3 className="w-3.5 h-3.5" /> : <Table2 className="w-3.5 h-3.5" />}
                 </button>
@@ -78,9 +78,9 @@ export const ChartTooltip: React.FC<{
       style={{
         border: '1px solid var(--og-border-strong)',
         borderRadius: 8,
-        background: 'rgba(8, 11, 19, 0.94)',
+        background: 'rgb(var(--og-bg-rgb) / 0.94)',
         backdropFilter: 'blur(12px)',
-        boxShadow: '4px 4px 0 -1px #06080e, 4px 4px 0 0 rgba(34,225,255,0.35)',
+        boxShadow: '4px 4px 0 -1px var(--og-bg), 4px 4px 0 0 rgb(var(--og-olive-rgb) / 0.3)',
         color: 'var(--og-text)',
       }}
     >

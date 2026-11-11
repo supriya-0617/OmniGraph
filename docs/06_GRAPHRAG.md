@@ -76,7 +76,7 @@ Response:
   "discarded_node_ids": [],
   "context": { "nodes_in_filter": 315, "nodes_analyzed": 120, "edges_analyzed": 223, "clusters_considered": 8,
                "detector_findings": 20, "truncated": true, "focus_node_ids": ["net_c01"],
-               "provider": "gemini", "model": "gemini-3.8-flash", "latency_ms": 4120 }
+               "provider": "vertex", "model": "gemini-3.8-flash", "latency_ms": 4120 }
 }
 ```
 
@@ -97,7 +97,7 @@ Switch provider with environment variables only:
 | `LLM_PROVIDER` | Credentials | Default `LLM_MODEL` |
 |---|---|---|
 | `gemini` | `LLM_API_KEY` from Google AI Studio | `gemini-3.8-flash` |
-| `vertex` | Vertex AI API key in `LLM_API_KEY`, **or** `GOOGLE_APPLICATION_CREDENTIALS` + `VERTEX_PROJECT_ID` (needs `pip install google-auth requests`). Bills Google Cloud credits such as the $300 trial — AI Studio keys do **not** draw on those credits. | `gemini-3.8-flash` |
+| `vertex` | OAuth/ADC, not an AI Studio key: locally `gcloud auth application-default login` + `VERTEX_PROJECT_ID`; in deployment a service-account JSON (role *Vertex AI User*) as a secret file referenced by `GOOGLE_APPLICATION_CREDENTIALS`. Tokens are cached and refreshed by `google-auth` (in `requirements.txt`). Only with `VERTEX_PROJECT_ID` blank is `LLM_API_KEY` sent, and then it must be a Vertex *express-mode* key. Bills Google Cloud credits such as the $300 trial; the project needs the Vertex AI API enabled **and** an open billing account linked. | `gemini-3.8-flash` |
 | `openai` | `LLM_API_KEY`; `LLM_BASE_URL` for any OpenAI-compatible endpoint | required |
 | `anthropic` | `LLM_API_KEY` | `claude-sonnet-5-5` |
 

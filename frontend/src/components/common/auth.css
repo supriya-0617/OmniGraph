@@ -16,8 +16,9 @@
   padding: 2.5rem clamp(2rem, 4vw, 4rem);
   border-right: 1px solid var(--og-border);
   background:
-    radial-gradient(40rem 30rem at 20% 110%, rgba(34, 225, 255, 0.12), transparent 60%),
-    radial-gradient(30rem 24rem at 90% 10%, rgba(167, 139, 250, 0.1), transparent 60%);
+    radial-gradient(40rem 30rem at 20% 110%, rgb(var(--og-olive-rgb) / 0.07), transparent 60%),
+    radial-gradient(30rem 24rem at 90% 10%, rgb(var(--og-oxide-rgb) / 0.05), transparent 60%),
+    var(--og-surface);
 }
 
 .auth-aside-grid {
@@ -25,8 +26,8 @@
   inset: 0;
   opacity: 0.6;
   background-image:
-    linear-gradient(rgba(150, 170, 215, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(150, 170, 215, 0.06) 1px, transparent 1px);
+    linear-gradient(rgb(var(--og-muted-rgb) / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--og-muted-rgb) / 0.06) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: radial-gradient(ellipse at 30% 60%, black, transparent 75%);
 }
@@ -51,7 +52,7 @@
 }
 
 .auth-accent {
-  color: var(--og-cyan);
+  color: var(--og-olive);
   font-size: 1.08em;
 }
 
@@ -113,7 +114,7 @@
 }
 
 .auth-back:hover {
-  color: var(--og-cyan);
+  color: var(--og-olive);
 }
 
 .auth-card {
@@ -154,14 +155,14 @@
 }
 
 .auth-footer a {
-  color: var(--og-cyan);
+  color: var(--og-olive);
   font-weight: 600;
   text-decoration: none;
-  border-bottom: 1px solid rgba(34, 225, 255, 0.35);
+  border-bottom: 1px solid rgb(var(--og-olive-rgb) / 0.35);
 }
 
 .auth-footer a:hover {
-  border-bottom-color: var(--og-cyan);
+  border-bottom-color: var(--og-olive);
 }
 
 .auth-dev-hint {
@@ -171,10 +172,10 @@
   gap: 0.75rem;
   margin-bottom: 1.25rem;
   padding: 0.65rem 0.8rem;
-  border: 1px dashed rgba(255, 184, 77, 0.4);
+  border: 1px dashed rgb(var(--og-orange-rgb) / 0.4);
   border-radius: var(--og-radius-sm);
-  background: rgba(255, 184, 77, 0.05);
-  color: var(--og-amber);
+  background: rgb(var(--og-orange-rgb) / 0.05);
+  color: var(--og-orange);
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
 }
@@ -188,7 +189,7 @@
 
 .auth-strength span {
   height: 3px;
-  background: rgba(150, 170, 215, 0.14);
+  background: rgb(var(--og-muted-rgb) / 0.14);
   transition: background-color 0.2s;
 }
 

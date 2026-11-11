@@ -7,8 +7,12 @@ LLM_PROVIDER   Credentials                                         Default LLM_M
 =============  ==================================================  ==============================
 gemini         LLM_API_KEY from Google AI Studio                    gemini-3.8-flash
 vertex         Vertex AI (bills Google Cloud credits, e.g. the      gemini-3.8-flash
-               $300 trial). Either LLM_API_KEY (Vertex API key)
-               or GOOGLE_APPLICATION_CREDENTIALS + VERTEX_PROJECT_ID
+               $300 trial). OAuth via a service-account file
+               (GOOGLE_APPLICATION_CREDENTIALS) or Application
+               Default Credentials (`gcloud auth application-default
+               login`). VERTEX_PROJECT_ID optional with ADC. With
+               no project, a Vertex *express* API key in LLM_API_KEY
+               (AI Studio keys are NOT accepted by Vertex).
 openai         LLM_API_KEY; LLM_BASE_URL for any OpenAI-compatible  (required)
                endpoint (OpenRouter, Groq, Ollama, …)
 anthropic      LLM_API_KEY                                          claude-sonnet-5-5
@@ -24,6 +28,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -89,9 +94,12 @@ class LLMAdapter:
         if not self.model:
             return f"LLM_MODEL is required for provider '{self.provider}'."
         if self.provider == "vertex":
-            if self.api_key or (settings.GOOGLE_APPLICATION_CREDENTIALS and settings.VERTEX_PROJECT_ID):
+            if _vertex_uses_oauth(self.api_key):
+                return _google_credentials.problem()
+            if self.api_key:
                 return None
-            return "Vertex AI needs LLM_API_KEY, or GOOGLE_APPLICATION_CREDENTIALS plus VERTEX_PROJECT_ID."
+            return ("Vertex AI needs Google Cloud credentials: run `gcloud auth application-default login`, "
+                    "or set GOOGLE_APPLICATION_CREDENTIALS to a service-account JSON file.")
         if not self.api_key:
             return "LLM_API_KEY is not configured on the server."
         return None
@@ -141,15 +149,12 @@ class LLMAdapter:
         location = settings.VERTEX_LOCATION or "global"
         host = "aiplatform.googleapis.com" if location == "global" else f"{location}-aiplatform.googleapis.com"
         model = quote(self.model)
-        headers: dict[str, str] = {}
-        if settings.GOOGLE_APPLICATION_CREDENTIALS and settings.VERTEX_PROJECT_ID:
-            headers["Authorization"] = f"Bearer {_google_access_token()}"
-        else:
-            headers["x-goog-api-key"] = self.api_key
-        if settings.VERTEX_PROJECT_ID:
-            url = (f"https://{host}/v1/projects/{quote(settings.VERTEX_PROJECT_ID)}/locations/{quote(location)}"
+        if _vertex_uses_oauth(self.api_key):
+            headers, project = _google_credentials.auth_headers()
+            url = (f"https://{host}/v1/projects/{quote(project)}/locations/{quote(location)}"
                    f"/publishers/google/models/{model}:generateContent")
-        else:  # Vertex AI API key ("express") endpoint
+        else:  # Vertex AI express-mode API key (no project in the path)
+            headers = {"x-goog-api-key": self.api_key}
             url = f"https://aiplatform.googleapis.com/v1/publishers/google/models/{model}:generateContent"
         payload = _post_json(url, self._gemini_body(system_prompt, user_prompt), headers)
         return _gemini_text(payload)
@@ -258,21 +263,78 @@ def _gemini_text(payload: dict[str, Any]) -> str:
     return text
 
 
-def _google_access_token() -> str:
-    try:
-        import google.auth.transport.requests  # type: ignore
-        from google.oauth2 import service_account  # type: ignore
-    except ImportError as error:
-        raise LLMAdapterError("Service-account auth needs the 'google-auth' package (pip install google-auth).") from error
-    try:
-        credentials = service_account.Credentials.from_service_account_file(
-            settings.GOOGLE_APPLICATION_CREDENTIALS,
-            scopes=["https://www.googleapis.com/auth/cloud-platform"],
-        )
-        credentials.refresh(google.auth.transport.requests.Request())
-        return credentials.token
-    except Exception as error:
-        raise LLMAdapterError(f"Could not obtain a Google Cloud access token: {error}") from error
+def _vertex_uses_oauth(api_key: str) -> bool:
+    """OAuth whenever a project or credential file is configured, or no key is given at all."""
+    return bool(settings.VERTEX_PROJECT_ID or settings.GOOGLE_APPLICATION_CREDENTIALS or not api_key)
+
+
+class _GoogleCredentials:
+    """Lazily loaded, cached Google OAuth credentials (service account or ADC), refreshed on expiry."""
+
+    SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._credentials: Any = None
+        self._project: str = ""
+        self._source: str = ""
+        self._error: str | None = None
+
+    def _load(self) -> None:
+        source = settings.GOOGLE_APPLICATION_CREDENTIALS or "adc"
+        if self._source == source and (self._credentials is not None or self._error):
+            return
+        self._source, self._credentials, self._project, self._error = source, None, "", None
+        try:
+            import google.auth  # type: ignore
+        except ImportError:
+            self._error = "Vertex OAuth needs the 'google-auth' package (pip install -r requirements.txt)."
+            return
+        try:
+            if settings.GOOGLE_APPLICATION_CREDENTIALS:
+                credentials, project = google.auth.load_credentials_from_file(
+                    settings.GOOGLE_APPLICATION_CREDENTIALS, scopes=self.SCOPES
+                )
+            else:
+                credentials, project = google.auth.default(scopes=self.SCOPES)
+        except Exception as error:  # DefaultCredentialsError, bad file, ...
+            self._error = (f"Could not load Google Cloud credentials ({error}). Run "
+                           "`gcloud auth application-default login` or set GOOGLE_APPLICATION_CREDENTIALS.")
+            return
+        self._credentials = credentials
+        self._project = settings.VERTEX_PROJECT_ID or project or getattr(credentials, "quota_project_id", "") or ""
+        if not self._project:
+            self._error = "VERTEX_PROJECT_ID is not set and the Google credentials name no project."
+
+    def problem(self) -> str | None:
+        with self._lock:
+            self._load()
+            return self._error
+
+    def auth_headers(self) -> tuple[dict[str, str], str]:
+        with self._lock:
+            self._load()
+            if self._error:
+                raise LLMAdapterError(self._error)
+            try:
+                import google.auth.transport.requests  # type: ignore
+                if not self._credentials.valid:
+                    self._credentials.refresh(google.auth.transport.requests.Request())
+            except Exception as error:
+                raise LLMAdapterError(
+                    f"Could not obtain a Google Cloud access token: {error}. "
+                    "Re-run `gcloud auth application-default login`."
+                ) from error
+            headers: dict[str, str] = {}
+            self._credentials.apply(headers)  # Authorization + x-goog-user-project (quota project)
+            return headers, self._project
+
+    def reset(self) -> None:
+        with self._lock:
+            self._credentials, self._project, self._source, self._error = None, "", "", None
+
+
+_google_credentials = _GoogleCredentials()
 
 
 def parse_json_response(text: str) -> dict[str, Any]:

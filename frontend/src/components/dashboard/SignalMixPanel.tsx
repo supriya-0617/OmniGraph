@@ -23,7 +23,7 @@ export const SignalMixPanel: React.FC<Props> = ({ platforms, severity, updating 
     <ChartCard
       kicker="Composition"
       title="Platform & severity mix"
-      icon={<Layers className="w-4 h-4 text-accent-amber" strokeWidth={1.75} aria-hidden="true" />}
+      icon={<Layers className="w-4 h-4 text-accent-orange" strokeWidth={1.75} aria-hidden="true" />}
       updating={updating}
       className="h-full"
       table={total ? (
@@ -47,7 +47,7 @@ export const SignalMixPanel: React.FC<Props> = ({ platforms, severity, updating 
                   <div
                     key={row.platform}
                     className="relative flex items-center px-2 text-[11px] font-semibold"
-                    style={{ width: `${share}%`, background: platformColor(row.platform), color: '#06080e' }}
+                    style={{ width: `${share}%`, background: platformColor(row.platform), color: 'var(--og-on-accent)' }}
                     title={`${row.platform}: ${formatNumber(row.count)} (${share.toFixed(0)}%)`}
                   >
                     {share >= 16 && <span className="truncate">{share.toFixed(0)}%</span>}
@@ -72,7 +72,7 @@ export const SignalMixPanel: React.FC<Props> = ({ platforms, severity, updating 
                 <XAxis dataKey="range" {...axisProps} interval={0} />
                 <YAxis hide allowDecimals={false} />
                 <Tooltip
-                  cursor={{ fill: 'rgba(255,112,92,0.06)' }}
+                  cursor={{ fill: 'rgba(184, 92, 88, 0.07)' }}
                   content={({ active, payload }) => (
                     <ChartTooltip
                       active={active}

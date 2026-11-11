@@ -65,7 +65,8 @@ uvicorn app.main:app --reload --port 8000
 
 * **With Neo4j Aura:** put the Aura credentials (`NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`) in `backend/.env`, then seed once: `python scripts/seed_data.py` (add `--reset` to refresh the 30-day window). If Aura is unreachable the API returns `503` and reconnects automatically.
 * **Without a database:** leave `NEO4J_URI` empty. The same dataset loads in memory; set `DEV_DEFAULT_ACCOUNT_ENABLED=true` for the `1234 / 1234` demo login.
-* **AI analyst:** set `LLM_API_KEY` (and optionally `LLM_PROVIDER`, `LLM_MODEL`). `GET /health` and the dashboard show whether AI is configured. To spend Google Cloud credits (e.g. the $300 trial) use `LLM_PROVIDER=vertex` — AI Studio keys do not draw on those credits. Details: `docs/06_GRAPHRAG.md` §5.
+* **Analyst accounts:** set `MONGODB_URI` and `MONGODB_DATABASE` in `backend/.env`. Registration and login use MongoDB; graph, analytics, entities, demo data and GraphRAG remain in Neo4j. If MongoDB is not configured, development falls back to the in-memory account store.
+* **AI analyst:** the default is Vertex AI with Google ADC. Run `gcloud auth application-default login`, set `VERTEX_PROJECT_ID`, and optionally `LLM_MODEL` in `backend/.env`; deployment uses a service-account file via `GOOGLE_APPLICATION_CREDENTIALS`. `GET /health` and the dashboard show whether AI is configured. Vertex requires billing and the Vertex AI API to be enabled. Details: `docs/06_GRAPHRAG.md` §5.
 
 ### 2. Frontend
 

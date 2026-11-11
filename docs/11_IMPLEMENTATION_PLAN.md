@@ -35,7 +35,9 @@
 - [x] Investigation workspace (Person 1): validated shared filters, Cytoscape graph controls and entity/severity styling, node details, cluster navigation, loading/error/empty states, imperative evidence-highlight API, live demo burst (`POST /demo/coordination`).
 - [x] Workspace refinements during integration: force layout, design-system colours, compact filter toolbar with presets and chips, connected-evidence node panel with Focus / Ask AI.
 - [x] `llm_client.py` adapter: Gemini (AI Studio), Vertex AI (Google Cloud credits), OpenAI-compatible and Anthropic, selected by `LLM_PROVIDER`; configured for Vertex AI + `gemini-4-argon`.
-- [ ] **Google account action:** enable the Vertex AI API for the key's project (or clear the AI Studio billing balance) — the code path is verified and returns the provider's exact message until then.
+- [x] Vertex auth switched to OAuth (ADC / service account); Vertex AI API enabled on `fullstackassignment-513909`.
+- [ ] **Google account action:** link an *open* billing account (activate the $300 free trial) to `fullstackassignment-513909` — the code path is verified end-to-end and returns Google's exact message until then.
+- [ ] Deployment: upload a service-account key as a Render secret file and set `GOOGLE_APPLICATION_CREDENTIALS=/etc/secrets/<file>.json`, `VERTEX_PROJECT_ID`.
 - [x] `/ai/query`: prioritised bounded retrieval, deterministic detector findings, forensic prompt, grounding/validation, rate limit, `/ai/status`.
 - [x] `<AiChatPanel />`: structured answers, evidence chips, origin/evidence graph highlighting, cluster and node focus, follow-up history.
 - [x] Analytics: consistent density scoping, KPI trends, platform/severity breakdowns, explainable five-factor risk score, response schemas, tests.

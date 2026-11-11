@@ -63,17 +63,20 @@ function layoutFor(count: number, animate: boolean): cytoscape.LayoutOptions {
 function readTokens(element: Element) {
   const css = getComputedStyle(element);
   const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+  // Entity colours (desaturated, distinguishable): see the token table in index.css.
   return {
-    bg: token('--og-bg', '#06080e'),
-    text: token('--og-text', '#e9edf5'),
-    muted: token('--og-muted', '#8d96ab'),
-    edge: token('--og-subtle', '#5a6379'),
-    cyan: token('--og-cyan', '#22e1ff'),
-    mint: token('--og-mint', '#5cf2b0'),
-    amber: token('--og-amber', '#ffb84d'),
-    coral: token('--og-coral', '#ff705c'),
-    violet: token('--og-violet', '#a78bfa'),
-    ip: token('--og-ip', '#7ea6ff'),
+    bg: token('--og-bg', '#0D110F'),
+    text: token('--og-text', '#E5E5D9'),
+    muted: token('--og-muted', '#A6AA9D'),
+    edge: token('--og-subtle', '#777E73'),
+    user: token('--og-sage', '#84977B'),
+    flagged: token('--og-crimson', '#B85C58'),
+    post: token('--og-brass', '#C5A16B'),
+    hashtag: token('--og-lavender', '#9B8AB4'),
+    ip: token('--og-steel', '#8295A6'),
+    evidence: token('--og-mauve', '#B18AAB'),
+    origin: token('--og-oxide', '#B66B4E'),
+    cluster: token('--og-olive', '#A6A17A'),
   };
 }
 
@@ -194,7 +197,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(({ onSelectNode,
           style: {
             width: 'data(size)',
             height: 'data(size)',
-            'background-color': color.mint,
+            'background-color': color.user,
             'border-width': 1.5,
             'border-color': color.bg,
             label: '',
@@ -210,18 +213,18 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(({ onSelectNode,
           } as cytoscape.Css.Node,
         },
         { selector: 'node[type = "User"]', style: { shape: 'ellipse' } },
-        { selector: 'node.flagged', style: { 'background-color': color.coral } },
-        { selector: 'node[type = "Post"]', style: { shape: 'round-rectangle', 'background-color': color.amber } },
-        { selector: 'node.high-severity', style: { 'border-color': color.coral, 'border-width': 3 } },
-        { selector: 'node[type = "Hashtag"]', style: { shape: 'diamond', 'background-color': color.violet } },
+        { selector: 'node.flagged', style: { 'background-color': color.flagged } },
+        { selector: 'node[type = "Post"]', style: { shape: 'round-rectangle', 'background-color': color.post } },
+        { selector: 'node.high-severity', style: { 'border-color': color.flagged, 'border-width': 3 } },
+        { selector: 'node[type = "Hashtag"]', style: { shape: 'diamond', 'background-color': color.hashtag } },
         { selector: 'node[type = "IPAddress"]', style: { shape: 'hexagon', 'background-color': color.ip } },
         { selector: 'node.show-label, node.hovered, node.connected', style: { label: 'data(label)' } },
-        { selector: 'node.connected', style: { 'border-color': color.cyan, 'border-width': 3 } },
-        { selector: 'node.cluster-focus', style: { 'border-color': color.cyan, 'border-width': 4, 'z-index': 20 } },
-        { selector: 'node.evidence', style: { 'border-color': color.violet, 'border-width': 4, 'overlay-color': color.violet, 'overlay-opacity': 0.14, 'overlay-padding': 6, 'z-index': 21 } },
+        { selector: 'node.connected', style: { 'border-color': color.cluster, 'border-width': 3 } },
+        { selector: 'node.cluster-focus', style: { 'border-color': color.cluster, 'border-width': 4, 'z-index': 20 } },
+        { selector: 'node.evidence', style: { 'border-color': color.evidence, 'border-width': 4, 'overlay-color': color.evidence, 'overlay-opacity': 0.12, 'overlay-padding': 6, 'z-index': 21 } },
         // Long post texts would collide; in focus modes label accounts, IPs and hashtags only.
         { selector: 'node.cluster-focus[type != "Post"], node.evidence[type != "Post"]', style: { label: 'data(label)' } },
-        { selector: 'node.origin', style: { 'border-color': color.amber, 'border-width': 6, width: 48, height: 48, label: 'data(label)', 'font-weight': 'bold', 'overlay-color': color.amber, 'overlay-opacity': 0.18, 'overlay-padding': 9, 'z-index': 22 } },
+        { selector: 'node.origin', style: { 'border-color': color.origin, 'border-width': 6, width: 48, height: 48, label: 'data(label)', 'font-weight': 'bold', 'overlay-color': color.origin, 'overlay-opacity': 0.14, 'overlay-padding': 9, 'z-index': 22 } },
         { selector: 'node.evidence-neighbor', style: { 'border-color': color.muted, 'border-width': 2 } },
         { selector: '.dimmed', style: { opacity: 0.1, 'text-opacity': 0 } },
         {
@@ -242,10 +245,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(({ onSelectNode,
             'text-outline-width': 2,
           } as cytoscape.Css.Edge,
         },
-        { selector: 'edge.connected', style: { 'line-color': color.cyan, 'target-arrow-color': color.cyan, width: 2, opacity: 1, label: 'data(label)' } },
-        { selector: 'edge.cluster-edge', style: { 'line-color': color.cyan, 'target-arrow-color': color.cyan, width: 2, opacity: 1 } },
-        { selector: 'edge.evidence-edge', style: { 'line-color': color.violet, 'target-arrow-color': color.violet, width: 2, opacity: 1 } },
-        { selector: ':selected', style: { 'border-color': color.cyan, 'border-width': 5, 'overlay-opacity': 0, label: 'data(label)' } },
+        { selector: 'edge.connected', style: { 'line-color': color.cluster, 'target-arrow-color': color.cluster, width: 2, opacity: 1, label: 'data(label)' } },
+        { selector: 'edge.cluster-edge', style: { 'line-color': color.cluster, 'target-arrow-color': color.cluster, width: 2, opacity: 1 } },
+        { selector: 'edge.evidence-edge', style: { 'line-color': color.evidence, 'target-arrow-color': color.evidence, width: 2, opacity: 1 } },
+        { selector: ':selected', style: { 'border-color': color.text, 'border-width': 5, 'overlay-opacity': 0, label: 'data(label)' } },
       ],
       layout: layoutFor(nodes.length, false),
     });
@@ -325,7 +328,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(({ onSelectNode,
         <div className="min-w-0">
           <span className="og-kicker block mb-1" style={{ fontSize: 9.5 }}>Cytoscape · force layout</span>
           <h3 className="og-section-title">
-            <Network className="h-4 w-4 shrink-0 text-accent-cyan" strokeWidth={1.75} aria-hidden="true" />
+            <Network className="h-4 w-4 shrink-0 text-accent-olive" strokeWidth={1.75} aria-hidden="true" />
             Investigation graph
             <span className="og-badge ml-1 hidden md:inline-flex og-tabular">{nodeCount} nodes · {edgeCount} links</span>
           </h3>
@@ -338,7 +341,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(({ onSelectNode,
             aria-pressed={showLabels}
             aria-label="Toggle labels"
             title="Toggle labels"
-            style={showLabels ? { color: 'var(--og-cyan)', borderColor: 'rgba(34,225,255,0.45)' } : undefined}
+            style={showLabels ? { color: 'var(--og-olive)', borderColor: 'rgb(var(--og-olive-rgb) / 0.45)' } : undefined}
           >
             <Tag className="h-3.5 w-3.5" />
           </button>
@@ -362,16 +365,16 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(({ onSelectNode,
         </div>
       )}
       {!isLoading && error && (
-        <div className="absolute inset-0 top-[58px] z-20 flex items-center justify-center p-6 text-center" style={{ background: 'rgba(6,8,14,0.88)' }} role="alert">
+        <div className="absolute inset-0 top-[58px] z-20 flex items-center justify-center p-6 text-center" style={{ background: 'rgb(var(--og-bg-rgb) / 0.88)' }} role="alert">
           <div className="max-w-sm og-empty">
-            <AlertTriangle className="h-8 w-8 text-accent-coral" strokeWidth={1.5} aria-hidden="true" />
+            <AlertTriangle className="h-8 w-8 text-accent-crimson" strokeWidth={1.5} aria-hidden="true" />
             <p className="text-sm font-semibold text-ink">Graph unavailable</p>
             <p className="text-xs leading-relaxed">{error}</p>
           </div>
         </div>
       )}
       {!isLoading && !error && isEmpty && (
-        <div className="absolute inset-0 top-[58px] z-20 flex items-center justify-center p-6" style={{ background: 'rgba(6,8,14,0.7)' }}>
+        <div className="absolute inset-0 top-[58px] z-20 flex items-center justify-center p-6" style={{ background: 'rgb(var(--og-bg-rgb) / 0.7)' }}>
           <div className="og-empty max-w-sm">
             <SearchX className="h-8 w-8" strokeWidth={1.4} aria-hidden="true" />
             <span className="og-stamp" style={{ color: 'var(--og-subtle)' }}>No graph data</span>
@@ -382,7 +385,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(({ onSelectNode,
 
       <div
         className="pointer-events-none absolute bottom-3 left-3 right-3 z-10 sm:right-auto rounded-lg px-3 py-2"
-        style={{ border: '1px solid var(--og-border)', background: 'rgba(6,8,14,0.82)', backdropFilter: 'blur(10px)' }}
+        style={{ border: '1px solid var(--og-border)', background: 'rgb(var(--og-bg-rgb) / 0.82)', backdropFilter: 'blur(10px)' }}
         role="list"
         aria-label="Graph legend"
       >
@@ -394,9 +397,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(({ onSelectNode,
             </span>
           ))}
           {[
-            ['AI evidence', 'var(--og-violet)'],
-            ['Origin', 'var(--og-amber)'],
-            ['Cluster', 'var(--og-cyan)'],
+            ['AI evidence', 'var(--og-mauve)'],
+            ['Origin', 'var(--og-oxide)'],
+            ['Cluster', 'var(--og-olive)'],
           ].map(([label, ring]) => (
             <span key={label} className="inline-flex items-center gap-1.5 text-ink/55" role="listitem">
               <span className="h-2 w-2 rounded-full" style={{ boxShadow: `0 0 0 2px ${ring}` }} aria-hidden="true" /> {label}

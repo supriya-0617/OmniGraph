@@ -9,11 +9,11 @@ import { PasswordToggle } from '../components/common/PasswordToggle';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STRENGTH = [
-  { label: 'Too short', color: 'var(--og-danger)' },
-  { label: 'Weak', color: 'var(--og-coral)' },
-  { label: 'Fair', color: 'var(--og-amber)' },
-  { label: 'Good', color: 'var(--og-cyan)' },
-  { label: 'Strong', color: 'var(--og-mint)' },
+  { label: 'Too short', color: 'var(--og-crimson)' },
+  { label: 'Weak', color: 'var(--og-crimson)' },
+  { label: 'Fair', color: 'var(--og-orange)' },
+  { label: 'Good', color: 'var(--og-olive)' },
+  { label: 'Strong', color: 'var(--og-sage)' },
 ];
 
 function passwordScore(password: string): number {
@@ -75,7 +75,7 @@ export const RegisterPage: React.FC = () => {
   return (
     <AuthLayout
       eyebrow="New analyst"
-      title={<>Open a <span className="og-serif" style={{ color: 'var(--og-cyan)' }}>case file</span></>}
+      title={<>Open a <span className="og-serif" style={{ color: 'var(--og-olive)' }}>case file</span></>}
       subtitle="Create an account to explore the network, run coordination analytics and brief the AI analyst."
     >
       {success && (

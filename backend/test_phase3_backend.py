@@ -232,6 +232,37 @@ class AdapterTests(unittest.TestCase):
         with self.assertRaises(LLMAdapterError):
             _gemini_text({"candidates": [{"finishReason": "MAX_TOKENS", "content": {"parts": []}}]})
 
+    def test_vertex_with_project_uses_oauth_bearer_not_api_key(self):
+        import importlib
+        module = importlib.import_module("app.ai.llm_client")
+
+        class FakeCreds:
+            valid = True
+            quota_project_id = "quota-proj"
+
+            def apply(self, headers):
+                headers["authorization"] = "Bearer tok"
+                headers["x-goog-user-project"] = self.quota_project_id
+
+        captured = {}
+
+        def fake_post(url, body, headers):
+            captured.update(url=url, headers=headers)
+            return {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": '{"summary": "ok"}'}]}}]}
+
+        module._google_credentials.reset()
+        try:
+            with patch.object(module.settings, "VERTEX_PROJECT_ID", "proj-1"),                  patch.object(module.settings, "GOOGLE_APPLICATION_CREDENTIALS", ""),                  patch("google.auth.default", return_value=(FakeCreds(), "adc-proj")),                  patch.object(module, "_post_json", side_effect=fake_post):
+                adapter = LLMAdapter(provider="vertex", api_key="ai-studio-key", model="m")
+                self.assertTrue(adapter.status()["configured"])
+                result = adapter.generate_forensic_analysis("s", "u")
+        finally:
+            module._google_credentials.reset()
+        self.assertEqual(result.data, {"summary": "ok"})
+        self.assertIn("/projects/proj-1/locations/global/publishers/google/models/m:generateContent", captured["url"])
+        self.assertEqual(captured["headers"]["authorization"], "Bearer tok")
+        self.assertNotIn("x-goog-api-key", captured["headers"])
+
 
 if __name__ == "__main__":
     unittest.main()

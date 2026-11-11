@@ -3,54 +3,89 @@
 @tailwind utilities;
 
 /* ============================================================================
-   OmniGraph design system — "Evidence Room"
-   Glass panels over an ink-navy field, neo-brutalist actions (hard offset
-   outline shadows), brutalist type + evidence stamps, minimalist colour:
-   every accent is semantic.
-     cyan   → primary action / active graph     mint   → healthy / neutral
-     amber  → suspicious                        coral  → high severity / flagged
-     danger → critical                          violet → AI / analytical insight
-   ========================================================================== */
+   OmniGraph design system — "Forensic Olive × Oxide & Bone"
+   An investigative intelligence palette: warm green-black grounds, olive and
+   burnt-oxide accents, lavender AI identity. No cyan, no neon.
+
+   Semantic roles:
+     olive   → primary action / active state
+     oxide   → secondary action / infrastructure / origin nodes
+     brass   → highlight / origin beacon / AI answer meter high
+     crimson → critical threat
+     orange  → high severity / suspicious
+     lavender → AI analyst identity
+     mauve   → AI-cited evidence in the graph
+     sage    → safe / verified / normal user nodes
+     steel   → IP address nodes
+
+   Every colour in the app resolves to a token below. Components use
+   var(--og-*) for solids and rgb(var(--og-*-rgb) / alpha) for tints; canvas,
+   Cytoscape and Recharts read the same values through chartTheme.ts.
+   ============================================================================ */
 
 @layer base {
   :root {
     color-scheme: dark;
 
-    /* channels (for Tailwind alpha utilities) */
-    --og-bg-rgb: 6 8 14;
-    --og-surface-rgb: 11 15 24;
-    --og-elevated-rgb: 16 21 33;
-    --og-overlay-rgb: 22 29 45;
-    --og-text-rgb: 233 237 245;
-    --og-cyan-rgb: 34 225 255;
-    --og-mint-rgb: 92 242 176;
-    --og-amber-rgb: 255 184 77;
-    --og-coral-rgb: 255 112 92;
-    --og-danger-rgb: 255 61 98;
-    --og-violet-rgb: 167 139 250;
+    /* ---------------------------------------------------------------- rgb channels (Tailwind alpha utilities) */
+    --og-bg-rgb:       13 17 15;      /* #0D110F */
+    --og-surface-rgb:  23 29 25;      /* #171D19 */
+    --og-elevated-rgb: 32 36 31;      /* #20241F */
+    --og-overlay-rgb:  41 45 39;      /* #292D27 */
+    --og-text-rgb:     229 229 217;   /* #E5E5D9 */
+    --og-muted-rgb:    166 170 157;   /* #A6AA9D */
+    --og-line-rgb:     53 59 51;      /* #353B33 */
+    --og-on-accent-rgb: 17 21 16;     /* #111510 */
 
-    /* solid tokens (Cytoscape + Recharts read these) */
-    --og-bg: #06080e;
-    --og-surface: #0b0f18;
-    --og-elevated: #101521;
-    --og-overlay: #161d2d;
-    --og-text: #e9edf5;
-    --og-cyan: #22e1ff;
-    --og-mint: #5cf2b0;
-    --og-amber: #ffb84d;
-    --og-coral: #ff705c;
-    --og-danger: #ff3d62;
-    --og-violet: #a78bfa;
-    --og-ip: #7ea6ff;
-    --og-muted: #8d96ab;
-    --og-subtle: #5a6379;
+    /* accent channels */
+    --og-olive-rgb:    166 161 122;   /* #A6A17A */
+    --og-oxide-rgb:    182 107 78;    /* #B66B4E */
+    --og-brass-rgb:    197 161 107;   /* #C5A16B */
+    --og-lavender-rgb: 155 138 180;   /* #9B8AB4 */
+    --og-sage-rgb:     132 151 123;   /* #84977B */
+    --og-crimson-rgb:  184 92 88;     /* #B85C58 */
+    --og-orange-rgb:   196 122 69;    /* #C47A45 */
+    --og-steel-rgb:    130 149 166;   /* #8295A6 */
+    --og-mauve-rgb:    177 138 171;   /* #B18AAB */
 
-    --og-border: rgba(150, 170, 215, 0.13);
-    --og-border-strong: rgba(190, 205, 240, 0.24);
-    --og-glass: linear-gradient(180deg, rgba(20, 26, 40, 0.74), rgba(10, 14, 23, 0.7));
-    --og-glass-strong: rgba(12, 16, 26, 0.94);
-    --og-hairline: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+    /* ---------------------------------------------------------------- solid tokens */
+    /* backgrounds */
+    --og-bg:       #0D110F;
+    --og-surface:  #171D19;
+    --og-elevated: #20241F;
+    --og-overlay:  #292D27;
 
+    /* text */
+    --og-text:    #E5E5D9;
+    --og-muted:   #A6AA9D;
+    --og-subtle:  #777E73;
+
+    /* accents */
+    --og-olive:    #A6A17A;
+    --og-oxide:    #B66B4E;
+    --og-brass:    #C5A16B;
+    --og-lavender: #9B8AB4;
+    --og-sage:     #84977B;
+    --og-crimson:  #B85C58;
+    --og-orange:   #C47A45;
+    --og-steel:    #8295A6;
+    --og-mauve:    #B18AAB;
+
+    /* interaction */
+    --og-primary-hover: #B8B18A;   /* olive hover */
+    --og-on-accent:     #111510;   /* text on olive / oxide / lavender fills */
+
+    /* borders */
+    --og-border:        #353B33;
+    --og-border-strong: #464D44;
+    --og-divider:       #292F29;
+
+    /* glass surfaces */
+    --og-glass:       linear-gradient(180deg, rgba(32, 36, 31, 0.78), rgba(23, 29, 25, 0.72));
+    --og-glass-strong: rgba(23, 29, 25, 0.96);
+    --og-hairline:    inset 0 1px 0 rgb(var(--og-text-rgb) / 0.04);
+
+    /* radii and easing */
     --og-radius-sm: 0.5rem;
     --og-radius-md: 0.875rem;
     --og-radius-lg: 1.25rem;
@@ -77,7 +112,7 @@
     font-feature-settings: 'cv11', 'ss01';
   }
 
-  /* Ambient aurora behind the glass + film grain on top. */
+  /* Subtle warm ambient — no cyan aurora, just warm olive/oxide undertones */
   body::before {
     position: fixed;
     inset: 0;
@@ -85,53 +120,47 @@
     pointer-events: none;
     content: '';
     background:
-      radial-gradient(60rem 40rem at 85% -10%, rgba(34, 225, 255, 0.09), transparent 60%),
-      radial-gradient(50rem 36rem at -10% 30%, rgba(167, 139, 250, 0.07), transparent 60%),
-      radial-gradient(40rem 30rem at 60% 110%, rgba(255, 112, 92, 0.05), transparent 60%),
+      radial-gradient(55rem 38rem at 85% -8%, rgb(var(--og-olive-rgb) / 0.055), transparent 60%),
+      radial-gradient(45rem 32rem at -8% 35%, rgb(var(--og-oxide-rgb) / 0.04), transparent 60%),
+      radial-gradient(35rem 26rem at 55% 108%, rgb(var(--og-lavender-rgb) / 0.04), transparent 60%),
       var(--og-bg);
   }
 
+  /* Subtle film grain */
   body::after {
     position: fixed;
     inset: 0;
     z-index: 100;
     pointer-events: none;
     content: '';
-    opacity: 0.045;
+    opacity: 0.04;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   ::selection {
-    background: rgba(34, 225, 255, 0.28);
-    color: #fff;
+    background: rgb(var(--og-olive-rgb) / 0.25);
+    color: #E5E5D9;
   }
 
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: rgba(150, 170, 215, 0.18);
+    background: rgb(var(--og-line-rgb) / 0.6);
     border: 2px solid transparent;
     border-radius: 999px;
     background-clip: padding-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(150, 170, 215, 0.32);
+    background-color: rgba(70, 77, 68, 0.8);
   }
 
-  input[type='date'] {
-    color-scheme: dark;
-  }
+  input[type='date'] { color-scheme: dark; }
 
-  /* Range: hairline track, square brutalist thumb. */
+  /* Range input — olive track, square thumb */
   input[type='range'] {
     height: 2px;
     border-radius: 0;
-    background: linear-gradient(90deg, var(--og-cyan), var(--og-border-strong));
+    background: linear-gradient(90deg, var(--og-olive), var(--og-border-strong));
     cursor: pointer;
     appearance: none;
   }
@@ -140,20 +169,18 @@
     height: 14px;
     border: 2px solid var(--og-bg);
     border-radius: 2px;
-    background: var(--og-cyan);
-    box-shadow: 2px 2px 0 0 rgba(34, 225, 255, 0.35);
+    background: var(--og-olive);
+    box-shadow: 2px 2px 0 0 rgb(var(--og-olive-rgb) / 0.25);
     appearance: none;
     transition: transform 0.15s var(--og-ease);
   }
-  input[type='range']:hover::-webkit-slider-thumb {
-    transform: scale(1.15);
-  }
+  input[type='range']:hover::-webkit-slider-thumb { transform: scale(1.15); }
   input[type='range']::-moz-range-thumb {
     width: 12px;
     height: 12px;
     border: 2px solid var(--og-bg);
     border-radius: 2px;
-    background: var(--og-cyan);
+    background: var(--og-olive);
   }
   input[type='range']::-moz-range-track {
     height: 2px;
@@ -161,7 +188,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--og-cyan);
+    outline: 2px solid var(--og-olive);
     outline-offset: 3px;
   }
 }
@@ -171,21 +198,21 @@
     @apply w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8;
   }
 
-  /* ---------------------------------------------------------------- glass */
+  /* ---------------------------------------------------------------- glass card */
   .og-card {
     position: relative;
     border: 1px solid var(--og-border);
     border-radius: var(--og-radius-md);
     background: var(--og-glass);
-    box-shadow: var(--og-hairline), 0 30px 60px -42px rgba(0, 0, 0, 0.95);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    backdrop-filter: blur(20px) saturate(140%);
+    box-shadow: var(--og-hairline), 0 30px 60px -42px rgba(0, 0, 0, 0.9);
+    -webkit-backdrop-filter: blur(20px) saturate(130%);
+    backdrop-filter: blur(20px) saturate(130%);
   }
 
   .og-card-header {
     @apply flex items-center justify-between gap-3 px-4 py-3;
     border-bottom: 1px solid var(--og-border);
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.025), transparent 70%);
+    background: linear-gradient(90deg, rgb(var(--og-text-rgb) / 0.018), transparent 70%);
     border-top-left-radius: inherit;
     border-top-right-radius: inherit;
   }
@@ -197,21 +224,19 @@
     letter-spacing: 0.14em;
   }
 
-  /* Viewfinder corner marks — the OmniGraph signature. */
-  .og-frame {
-    position: relative;
-  }
+  /* Viewfinder corner marks — the OmniGraph signature (now in olive) */
+  .og-frame { position: relative; }
   .og-frame::after {
     position: absolute;
     inset: 8px;
     pointer-events: none;
     content: '';
-    --mark: rgba(34, 225, 255, 0.55);
+    --mark: rgb(var(--og-olive-rgb) / 0.45);
     background:
-      linear-gradient(var(--mark), var(--mark)) top left / 14px 1px,
-      linear-gradient(var(--mark), var(--mark)) top left / 1px 14px,
-      linear-gradient(var(--mark), var(--mark)) top right / 14px 1px,
-      linear-gradient(var(--mark), var(--mark)) top right / 1px 14px,
+      linear-gradient(var(--mark), var(--mark)) top left    / 14px 1px,
+      linear-gradient(var(--mark), var(--mark)) top left    / 1px 14px,
+      linear-gradient(var(--mark), var(--mark)) top right   / 14px 1px,
+      linear-gradient(var(--mark), var(--mark)) top right   / 1px 14px,
       linear-gradient(var(--mark), var(--mark)) bottom left / 14px 1px,
       linear-gradient(var(--mark), var(--mark)) bottom left / 1px 14px,
       linear-gradient(var(--mark), var(--mark)) bottom right / 14px 1px,
@@ -220,7 +245,7 @@
     z-index: 5;
   }
 
-  /* ---------------------------------------------------------------- type */
+  /* ---------------------------------------------------------------- typography */
   .og-kicker {
     @apply font-mono uppercase;
     color: var(--og-muted);
@@ -252,9 +277,7 @@
     line-height: 1.2;
   }
 
-  .og-tabular {
-    font-variant-numeric: tabular-nums;
-  }
+  .og-tabular { font-variant-numeric: tabular-nums; }
 
   /* ---------------------------------------------------------------- badges */
   .og-badge {
@@ -264,15 +287,16 @@
     border-radius: 999px;
     font-size: 10px;
     letter-spacing: 0.08em;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgb(var(--og-text-rgb) / 0.03);
     color: var(--og-muted);
   }
-  .og-badge-muted { @apply og-badge; }
-  .og-badge-cyan { @apply og-badge; color: var(--og-cyan); border-color: rgba(34, 225, 255, 0.32); background: rgba(34, 225, 255, 0.07); }
-  .og-badge-mint { @apply og-badge; color: var(--og-mint); border-color: rgba(92, 242, 176, 0.3); background: rgba(92, 242, 176, 0.07); }
-  .og-badge-amber { @apply og-badge; color: var(--og-amber); border-color: rgba(255, 184, 77, 0.32); background: rgba(255, 184, 77, 0.07); }
-  .og-badge-danger { @apply og-badge; color: var(--og-coral); border-color: rgba(255, 112, 92, 0.35); background: rgba(255, 112, 92, 0.08); }
-  .og-badge-violet { @apply og-badge; color: var(--og-violet); border-color: rgba(167, 139, 250, 0.35); background: rgba(167, 139, 250, 0.08); }
+  .og-badge-muted   { @apply og-badge; }
+  .og-badge-olive    { @apply og-badge; color: var(--og-olive);    border-color: rgb(var(--og-olive-rgb) / 0.35);    background: rgb(var(--og-olive-rgb) / 0.08); }
+  .og-badge-oxide    { @apply og-badge; color: var(--og-oxide);    border-color: rgb(var(--og-oxide-rgb) / 0.35);    background: rgb(var(--og-oxide-rgb) / 0.08); }
+  .og-badge-sage     { @apply og-badge; color: var(--og-sage);     border-color: rgb(var(--og-sage-rgb) / 0.32);     background: rgb(var(--og-sage-rgb) / 0.08); }
+  .og-badge-orange   { @apply og-badge; color: var(--og-orange);   border-color: rgb(var(--og-orange-rgb) / 0.35);   background: rgb(var(--og-orange-rgb) / 0.08); }
+  .og-badge-crimson  { @apply og-badge; color: var(--og-crimson);  border-color: rgb(var(--og-crimson-rgb) / 0.38);  background: rgb(var(--og-crimson-rgb) / 0.09); }
+  .og-badge-lavender { @apply og-badge; color: var(--og-lavender); border-color: rgb(var(--og-lavender-rgb) / 0.35); background: rgb(var(--og-lavender-rgb) / 0.08); }
 
   .og-dot {
     display: inline-block;
@@ -280,11 +304,9 @@
     height: 7px;
     border-radius: 999px;
     background: currentColor;
-    box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 20%, transparent);
   }
-  .og-dot-live {
-    animation: og-pulse 2.2s var(--og-ease) infinite;
-  }
+  .og-dot-live { animation: og-pulse 2.2s var(--og-ease) infinite; }
 
   /* ---------------------------------------------------------------- buttons */
   .og-btn {
@@ -296,16 +318,19 @@
     transition: transform 0.16s var(--og-ease), box-shadow 0.16s var(--og-ease), background-color 0.16s, border-color 0.16s, color 0.16s;
   }
 
-  /* Neo-brutalist primary: solid fill + hard outlined offset shadow that "presses". */
+  /* Primary: muted olive, dark text, neo-brutalist offset shadow */
   .og-btn-primary {
     @apply og-btn px-4 py-2 font-semibold;
-    --brutal: var(--og-cyan);
+    --brutal: var(--og-olive);
     background: var(--brutal);
-    color: #02121a;
+    color: var(--og-on-accent);
     border-color: var(--brutal);
     box-shadow: 4px 4px 0 -1.5px var(--og-bg), 4px 4px 0 0 var(--brutal);
   }
   .og-btn-primary:hover {
+    --brutal: var(--og-primary-hover);
+    background: var(--brutal);
+    border-color: var(--brutal);
     transform: translate(-1px, -1px);
     box-shadow: 6px 6px 0 -1.5px var(--og-bg), 6px 6px 0 0 var(--brutal);
   }
@@ -313,22 +338,30 @@
     transform: translate(3px, 3px);
     box-shadow: 1px 1px 0 -1.5px var(--og-bg), 1px 1px 0 0 var(--brutal);
   }
-  .og-btn-violet { --brutal: var(--og-violet); color: #0e0820; }
-  .og-btn-coral { --brutal: var(--og-coral); color: #1d0703; }
+
+  .og-btn-primary:focus-visible { outline-color: var(--og-text); }
+
+  /* Lavender variant — AI analyst actions */
+  .og-btn-ai { --brutal: var(--og-lavender); color: var(--og-on-accent); }
+  .og-btn-ai:hover { --brutal: #ADA0C2; background: var(--brutal); border-color: var(--brutal); }
+
+  /* Oxide variant — secondary emphasis / origin */
+  .og-btn-oxide { --brutal: var(--og-oxide); color: var(--og-on-accent); }
+  .og-btn-oxide:hover { --brutal: #C47E62; background: var(--brutal); border-color: var(--brutal); }
 
   .og-btn-ghost {
     @apply og-btn px-3 py-1.5;
     border-color: var(--og-border);
-    background: rgba(255, 255, 255, 0.025);
+    background: rgb(var(--og-text-rgb) / 0.025);
     color: var(--og-text);
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
     letter-spacing: 0.04em;
   }
   .og-btn-ghost:hover {
-    border-color: rgba(34, 225, 255, 0.45);
-    background: rgba(34, 225, 255, 0.06);
-    color: var(--og-cyan);
+    border-color: rgb(var(--og-olive-rgb) / 0.45);
+    background: rgb(var(--og-olive-rgb) / 0.07);
+    color: var(--og-olive);
   }
 
   .og-icon-btn {
@@ -343,7 +376,7 @@
     @apply px-3 py-2 text-sm outline-none;
     border: 1px solid var(--og-border);
     border-radius: var(--og-radius-sm);
-    background: rgba(4, 6, 11, 0.6);
+    background: rgb(var(--og-bg-rgb) / 0.65);
     color: var(--og-text);
     transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
   }
@@ -353,14 +386,15 @@
   .og-input:focus-visible,
   .og-select:focus-visible {
     outline: none;
-    border-color: var(--og-cyan);
-    background: rgba(4, 6, 11, 0.85);
-    box-shadow: 3px 3px 0 0 rgba(34, 225, 255, 0.25);
+    border-color: var(--og-olive);
+    background: rgb(var(--og-bg-rgb) / 0.9);
+    box-shadow: 3px 3px 0 0 rgb(var(--og-olive-rgb) / 0.2);
   }
 
   .og-select {
     @apply og-input py-1.5 pr-8 cursor-pointer appearance-none bg-no-repeat;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2322e1ff' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    /* olive chevron */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A6A17A' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-position: right 0.6rem center;
   }
 
@@ -368,7 +402,7 @@
     @apply flex flex-wrap items-center gap-2 px-3 py-2;
     border: 1px solid var(--og-border);
     border-radius: var(--og-radius-sm);
-    background: rgba(4, 6, 11, 0.45);
+    background: rgb(var(--og-bg-rgb) / 0.45);
   }
 
   .og-control-label {
@@ -379,15 +413,11 @@
   }
 
   /* ---------------------------------------------------------------- table */
-  .og-table-wrap {
-    @apply overflow-x-auto -mx-1 px-1;
-  }
+  .og-table-wrap { @apply overflow-x-auto -mx-1 px-1; }
   .og-table {
     @apply w-full min-w-[520px] text-left text-xs font-mono border-collapse;
   }
-  .og-table thead tr {
-    border-bottom: 1px solid var(--og-border-strong);
-  }
+  .og-table thead tr { border-bottom: 1px solid var(--og-border-strong); }
   .og-table th {
     @apply pb-2.5 pt-1 px-2 font-semibold uppercase whitespace-nowrap;
     color: var(--og-muted);
@@ -396,14 +426,14 @@
   }
   .og-table td {
     @apply py-3 px-2 align-middle;
-    color: #c3cadb;
+    color: #C4C5B8;
   }
   .og-table tbody tr {
-    border-bottom: 1px solid rgba(150, 170, 215, 0.07);
+    border-bottom: 1px solid rgb(var(--og-line-rgb) / 0.5);
     transition: background-color 0.15s;
   }
   .og-table tbody tr:hover {
-    background: rgba(34, 225, 255, 0.035);
+    background: rgb(var(--og-olive-rgb) / 0.04);
   }
 
   /* ---------------------------------------------------------------- chips */
@@ -411,15 +441,15 @@
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 font-mono whitespace-nowrap cursor-pointer shrink-0;
     border: 1px solid var(--og-border);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.03);
-    color: #c3cadb;
+    background: rgb(var(--og-text-rgb) / 0.03);
+    color: #C4C5B8;
     font-size: 10.5px;
     transition: border-color 0.15s, color 0.15s, background-color 0.15s, transform 0.15s var(--og-ease);
   }
   .og-chip:hover {
-    border-color: rgba(34, 225, 255, 0.5);
-    background: rgba(34, 225, 255, 0.07);
-    color: var(--og-cyan);
+    border-color: rgb(var(--og-olive-rgb) / 0.5);
+    background: rgb(var(--og-olive-rgb) / 0.07);
+    color: var(--og-olive);
   }
   .og-chip:active { transform: scale(0.97); }
 
@@ -432,14 +462,14 @@
     position: relative;
     overflow: hidden;
     border-radius: 6px;
-    background: rgba(150, 170, 215, 0.07);
+    background: rgb(var(--og-line-rgb) / 0.5);
   }
   .og-skeleton::after {
     position: absolute;
     inset: 0;
     content: '';
     transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, rgba(150, 170, 215, 0.09), transparent);
+    background: linear-gradient(90deg, transparent, rgb(var(--og-olive-rgb) / 0.07), transparent);
     animation: og-shimmer 1.4s infinite;
   }
 
@@ -454,28 +484,22 @@
   }
 }
 
-/* -------------------------------------------------------------------- legacy
-   Utilities kept for components owned by other workstreams. */
+/* -------------------------------------------------------------------- legacy utilities */
 .glass-panel,
 .glass-card {
   border: 1px solid var(--og-border);
   background: var(--og-glass);
-  box-shadow: var(--og-hairline), 0 30px 60px -42px rgba(0, 0, 0, 0.95);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: var(--og-hairline), 0 30px 60px -42px rgba(0, 0, 0, 0.9);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+  backdrop-filter: blur(20px) saturate(130%);
 }
 
-.glow-cyan { box-shadow: 0 0 32px -10px rgba(34, 225, 255, 0.55); }
-.glow-danger { box-shadow: 0 0 32px -12px rgba(255, 61, 98, 0.5); }
-
 .bg-grid-pattern {
-  background-image: radial-gradient(rgba(150, 170, 215, 0.13) 1px, transparent 1px);
+  background-image: radial-gradient(rgb(var(--og-line-rgb) / 0.6) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
-.dashboard-page {
-  color: var(--og-text);
-}
+.dashboard-page { color: var(--og-text); }
 
 .og-kpi-card {
   position: relative;
@@ -483,25 +507,26 @@
   min-height: 7.5rem;
 }
 
-.og-node-legend-user { background-color: var(--og-mint); }
-.og-node-legend-flagged { background-color: var(--og-coral); box-shadow: 0 0 0 2px rgba(255, 112, 92, 0.3); }
-.og-node-legend-post { background-color: var(--og-amber); }
-.og-node-legend-hashtag { background-color: var(--og-violet); }
-.og-node-legend-ip { background-color: var(--og-ip); }
+/* Graph legend node colours */
+.og-node-legend-user    { background-color: var(--og-sage); }
+.og-node-legend-flagged { background-color: var(--og-crimson); }
+.og-node-legend-post    { background-color: var(--og-brass); }
+.og-node-legend-hashtag { background-color: var(--og-lavender); }
+.og-node-legend-ip      { background-color: var(--og-steel); }
 
 .og-updating-overlay {
-  background: rgba(6, 8, 14, 0.55);
+  background: rgb(var(--og-bg-rgb) / 0.6);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 
 .og-ai-notice {
-  border-color: rgba(167, 139, 250, 0.25);
-  background: rgba(167, 139, 250, 0.06);
+  border-color: rgb(var(--og-lavender-rgb) / 0.22);
+  background: rgb(var(--og-lavender-rgb) / 0.05);
 }
 
 .og-node-detail-panel {
-  border-color: rgba(34, 225, 255, 0.25) !important;
+  border-color: rgb(var(--og-olive-rgb) / 0.22) !important;
   background: var(--og-glass-strong) !important;
   -webkit-backdrop-filter: blur(22px);
   backdrop-filter: blur(22px);
@@ -521,22 +546,18 @@
 /* -------------------------------------------------------------------- motion */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateX(8px); }
-  to { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes og-rise {
   from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: none; }
+  to   { opacity: 1; transform: none; }
 }
-@keyframes og-shimmer {
-  to { transform: translateX(100%); }
-}
+@keyframes og-shimmer { to { transform: translateX(100%); } }
 @keyframes og-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent); }
-  70% { box-shadow: 0 0 0 7px transparent; }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 42%, transparent); }
+  70%       { box-shadow: 0 0 0 7px transparent; }
 }
-@keyframes og-spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes og-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
   *,

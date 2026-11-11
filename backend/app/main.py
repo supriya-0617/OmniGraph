@@ -9,6 +9,7 @@ from neo4j.exceptions import Neo4jError, ServiceUnavailable, SessionExpired
 
 from app.config import settings
 from app.db.neo4j import db
+from app.db.mongodb import mongo_auth_db
 from app.routes import (
     ai_router,
     analytics_router,
@@ -37,6 +38,8 @@ async def lifespan(app: FastAPI):
         logger.info("Neo4j connection established.")
     elif not db.is_memory_mode():
         logger.warning("Neo4j is configured but unreachable; data routes return 503 and reconnect automatically.")
+    if mongo_auth_db.is_configured and not mongo_auth_db.connect():
+        logger.warning("MongoDB auth database is configured but unavailable; auth routes return 503.")
     simulator = None
     if settings.SIMULATOR_ENABLED:
         from app.simulator import run_simulator
@@ -46,6 +49,7 @@ async def lifespan(app: FastAPI):
     if simulator:
         simulator.cancel()
     db.close()
+    mongo_auth_db.close()
 
 
 app = FastAPI(

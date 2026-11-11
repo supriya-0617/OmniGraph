@@ -43,12 +43,12 @@ export const FilterBar: React.FC = () => {
   return (
     <div
       className="sticky top-16 z-40"
-      style={{ borderBottom: '1px solid var(--og-border)', background: 'rgba(8, 11, 19, 0.78)', backdropFilter: 'blur(20px) saturate(150%)', WebkitBackdropFilter: 'blur(20px) saturate(150%)' }}
+      style={{ borderBottom: '1px solid var(--og-border)', background: 'rgb(var(--og-bg-rgb) / 0.78)', backdropFilter: 'blur(20px) saturate(150%)', WebkitBackdropFilter: 'blur(20px) saturate(150%)' }}
     >
       <div className="og-container py-2.5">
         <div className="flex items-center justify-between gap-3 lg:hidden">
           <span className="og-section-title">
-            <SlidersHorizontal className="w-4 h-4 text-accent-cyan" strokeWidth={1.75} aria-hidden="true" />
+            <SlidersHorizontal className="w-4 h-4 text-accent-olive" strokeWidth={1.75} aria-hidden="true" />
             Filters
             <span className="og-badge">{chips.length + (activePreset === 'All' ? 0 : 1)} active</span>
           </span>
@@ -81,7 +81,7 @@ export const FilterBar: React.FC = () => {
                   onClick={() => applyPreset(preset.days)}
                   aria-pressed={activePreset === preset.label}
                   className="px-2 py-1 rounded text-[10.5px] font-mono transition-colors"
-                  style={activePreset === preset.label ? { background: 'var(--og-cyan)', color: '#02121a' } : { color: 'var(--og-muted)' }}
+                  style={activePreset === preset.label ? { background: 'var(--og-olive)', color: 'var(--og-on-accent)' } : { color: 'var(--og-muted)' }}
                 >
                   {preset.label}
                 </button>
@@ -122,7 +122,7 @@ export const FilterBar: React.FC = () => {
 
           {/* Severity */}
           <div className="og-control-group py-1.5 lg:w-[220px]">
-            <ShieldAlert className="w-3.5 h-3.5 text-accent-coral shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            <ShieldAlert className="w-3.5 h-3.5 text-accent-crimson shrink-0" strokeWidth={1.75} aria-hidden="true" />
             <span className="og-control-label">Severity</span>
             <input
               type="range"
@@ -135,12 +135,12 @@ export const FilterBar: React.FC = () => {
               aria-label="Minimum severity"
               aria-valuetext={`${Math.round(filters.minSeverity * 100)} percent`}
             />
-            <span className="font-mono text-xs w-9 text-right text-accent-cyan og-tabular">≥{Math.round(filters.minSeverity * 100)}</span>
+            <span className="font-mono text-xs w-9 text-right text-accent-olive og-tabular">≥{Math.round(filters.minSeverity * 100)}</span>
           </div>
 
           {/* Density */}
           <div className="og-control-group py-1.5 lg:w-[220px]">
-            <Layers className="w-3.5 h-3.5 text-accent-cyan shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            <Layers className="w-3.5 h-3.5 text-accent-olive shrink-0" strokeWidth={1.75} aria-hidden="true" />
             <span className="og-control-label" title="Minimum accounts in a shared-IP coordination group">Density</span>
             <input
               type="range"
@@ -153,7 +153,7 @@ export const FilterBar: React.FC = () => {
               aria-label="Minimum accounts per coordination group"
               aria-valuetext={`${filters.minDensity} accounts per group`}
             />
-            <span className="font-mono text-xs w-6 text-right text-accent-cyan og-tabular">{filters.minDensity}</span>
+            <span className="font-mono text-xs w-6 text-right text-accent-olive og-tabular">{filters.minDensity}</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 lg:ml-auto">
@@ -169,7 +169,7 @@ export const FilterBar: React.FC = () => {
         </div>
 
         {invalidDateRange && (
-          <p id="filter-date-error" className="mt-2 text-[11px] text-accent-coral" role="alert">
+          <p id="filter-date-error" className="mt-2 text-[11px] text-accent-crimson" role="alert">
             Start date must be on or before the end date. Results will not refresh until corrected.
           </p>
         )}

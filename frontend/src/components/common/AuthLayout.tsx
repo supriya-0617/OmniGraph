@@ -65,7 +65,7 @@ export const AuthLayout: React.FC<Props> = ({ eyebrow, title, subtitle, children
         </Link>
 
         <div className="auth-aside-copy">
-          <span className="og-stamp" style={{ color: 'var(--og-cyan)' }}>Case file · restricted</span>
+          <span className="og-stamp" style={{ color: 'var(--og-olive)' }}>Case file · restricted</span>
           <p className="og-display auth-aside-title">
             Every network
             <br />
@@ -77,9 +77,9 @@ export const AuthLayout: React.FC<Props> = ({ eyebrow, title, subtitle, children
         </div>
 
         <div className="auth-stats">
-          <Stat label="Accounts" value={stats?.entities.User} tone="var(--og-mint)" />
+          <Stat label="Accounts" value={stats?.entities.User} tone="var(--og-sage)" />
           <Stat label="Posts" value={stats?.entities.Post} tone="var(--og-text)" />
-          <Stat label="Clusters" value={stats?.coordinated_clusters} tone="var(--og-coral)" />
+          <Stat label="Clusters" value={stats?.coordinated_clusters} tone="var(--og-crimson)" />
         </div>
         <span className="auth-aside-foot og-kicker">
           {stats ? `Live index · ${stats.storage_mode === 'neo4j' ? 'Neo4j Aura' : 'development graph'}` : 'Connecting to index…'}
@@ -92,7 +92,7 @@ export const AuthLayout: React.FC<Props> = ({ eyebrow, title, subtitle, children
         </Link>
         <div className="auth-card og-card og-frame">
           <div className="auth-card-head">
-            <span className="og-kicker" style={{ color: 'var(--og-cyan)' }}>{eyebrow}</span>
+            <span className="og-kicker" style={{ color: 'var(--og-olive)' }}>{eyebrow}</span>
             <h1 className="og-display auth-title">{title}</h1>
             <p className="auth-subtitle">{subtitle}</p>
           </div>

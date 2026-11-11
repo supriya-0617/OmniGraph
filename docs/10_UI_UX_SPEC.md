@@ -39,8 +39,8 @@ IDs the graph cannot show (the canvas is capped at the newest 120 posts) are rep
 
 - `<FilterBar />` — compact sticky toolbar over the shared `FilterContext`: date presets (24h / 7d / 30d / All) and pickers, platform, severity and density sliders, removable active-filter chips, reset, inline invalid-date error, collapsible on small screens.
 - `<NodeDetailPanel />` — selected-node inspector: type-specific fields (severity, platform, timestamp, followers, account age with a "new" warning, network type), **connected evidence** grouped by relationship (click to jump), **Focus** neighbourhood and **Ask AI** about the node.
-- `<GraphCanvas />` — Cytoscape.js force-layout graph (Person 1). Consumes `/graph` nodes/edges without a second client-side filter; node size follows degree; zoom / fit / focus / label / reset controls; tap shows a node's neighbourhood. Exposes an imperative handle `focusNodes(ids)`, `highlightNodes(ids, originId)` and `clearHighlights()`; the first two return the IDs that are not in the rendered graph so the UI can report them. Origin = amber ring, AI evidence = violet, cluster focus = cyan, everything else fades.
-- `<KpiCard />` — value, definition, semantic tone and a previous-period trend badge (risk metrics colour increases coral; volume is neutral).
+- `<GraphCanvas />` — Cytoscape.js force-layout graph (Person 1). Consumes `/graph` nodes/edges without a second client-side filter; node size follows degree; zoom / fit / focus / label / reset controls; tap shows a node's neighbourhood. Exposes an imperative handle `focusNodes(ids)`, `highlightNodes(ids, originId)` and `clearHighlights()`; the first two return the IDs that are not in the rendered graph so the UI can report them. Origin = oxide ring, AI evidence = mauve, cluster focus = olive, everything else fades.
+- `<KpiCard />` — value, definition, semantic tone and a previous-period trend badge (risk metrics colour increases crimson; volume is neutral).
 - `<PostsOverTimeChart />`, `<HashtagBarChart />`, `<SignalMixPanel />` — Recharts views built on the shared `charts/ChartCard` (legend, chart/table toggle, tooltip, empty state, refetch dimming).
 - `<ClusterTable />` — sortable ranked clusters, risk bar + tier label + per-factor strip, Graph / Ask AI actions.
 - `<AiChatPanel />` — GraphRAG investigation assistant (section 7).
@@ -62,20 +62,37 @@ A mixture that stays readable around a dense graph:
 
 | Ingredient | Where it shows |
 |---|---|
-| **Glassmorphism** | Panels are translucent gradients with `backdrop-filter: blur(20px) saturate(140%)`, a 1 px hairline highlight and a soft deep shadow, floating over an ambient aurora (cyan / violet / coral radial light) and a subtle film grain. |
-| **Neo-brutalism** | Primary actions are solid fills with a hard *outlined* offset shadow that "presses" on click (`.og-btn-primary`; `--brutal` colour per context: cyan, violet for AI, coral). Focused inputs get a hard offset shadow; the final landing CTA is a full brutalist block. |
+| **Glassmorphism** | Panels are translucent gradients with `backdrop-filter: blur(20px) saturate(140%)`, a 1 px hairline highlight and a soft deep shadow, floating over a faint warm ambient (olive / oxide radial light at ≤ 6 % alpha) and a subtle film grain. |
+| **Neo-brutalism** | Primary actions are solid fills with a hard *outlined* offset shadow that "presses" on click (`.og-btn-primary` olive with `#111510` text, hover `#B8B18A`; `.og-btn-ai` lavender; `.og-btn-oxide` burnt oxide). Focused inputs get a hard offset shadow; the final landing CTA is a dark brutalist block with a burnt-oxide edge and an olive action. |
 | **Brutalism** | Oversized uppercase Space Grotesk headlines, outlined step numerals, mono "evidence stamps" (`.og-stamp`) and kicker labels (`01 / HOW IT WORKS`), square range thumbs. |
-| **Minimalism** | One ink-navy base (`#06080e`), hairline borders, generous spacing, colour only where it means something. |
+| **Minimalism** | One green-black base (`#0D110F`), hairline borders, generous spacing, colour only where it means something (≈ 75 % neutral surface, 15 % text and lines, 8 % semantic, 2 % olive). |
 
 Signature details: viewfinder corner marks (`.og-frame`) on key panels, Instrument Serif italic accents in headlines, live status dots.
 
-**Semantic colour (never decorative):** cyan = primary action / active graph; mint = healthy / neutral; amber = suspicious; coral / red = high severity / flagged / critical; violet = AI and analytical insight. Chart marks use a separately validated palette (`07_ANALYTICS.md` section 4).
+**Palette — "Forensic Olive × Oxide & Bone".** No cyan, no neon, no purple-blue gradients, no pure black / white.
+
+| Role | Token | Hex |
+|---|---|---|
+| Background / secondary / card / elevated | `--og-bg` / `--og-surface` / `--og-elevated` / `--og-overlay` | `#0D110F` / `#171D19` / `#20241F` / `#292D27` |
+| Border / divider | `--og-border` / `--og-divider` | `#353B33` / `#292F29` |
+| Text primary / secondary / tertiary | `--og-text` / `--og-muted` / `--og-subtle` | `#E5E5D9` / `#A6AA9D` / `#777E73` |
+| Primary action (text on it `#111510`) | `--og-olive` | `#A6A17A` |
+| Secondary accent, origin / infrastructure | `--og-oxide` | `#B66B4E` |
+| Highlight, posts | `--og-brass` | `#C5A16B` |
+| AI analyst, hashtags | `--og-lavender` | `#9B8AB4` |
+| AI-cited evidence ring | `--og-mauve` | `#B18AAB` |
+| Safe / verified, user accounts | `--og-sage` | `#84977B` |
+| Critical, flagged accounts | `--og-crimson` | `#B85C58` |
+| High severity | `--og-orange` | `#C47A45` |
+| IP addresses | `--og-steel` | `#8295A6` |
+
+Graph: users sage, flagged crimson, posts brass, hashtags lavender, IPs steel (each also has its own shape); origin = oxide ring, AI evidence = mauve ring, cluster focus = olive, selection = bone. Chart marks use a separately validated palette (`07_ANALYTICS.md` section 4).
 
 **Type:** Space Grotesk (display), Instrument Serif italic (accent), Inter (body and KPI numbers), JetBrains Mono (data, labels, IDs).
 
-**Tokens** live in `frontend/src/index.css` (`--og-*`, plus RGB channels for Tailwind alpha utilities) and `tailwind.config.js` (`surface`, `ink`, `accent.*`). Shared classes kept stable for every workstream: `og-card`, `og-card-header`, `og-section-title`, `og-btn-primary|ghost`, `og-icon-btn`, `og-input`, `og-select`, `og-control-*`, `og-badge-*`, `og-chip`, `og-stamp`, `og-kicker`, `og-frame`, `og-skeleton`, `og-table*`.
+**Tokens** live in `frontend/src/index.css` (`--og-*`, plus RGB channels for Tailwind alpha utilities) and `tailwind.config.js` (`surface`, `ink`, `muted`, `line`, `accent.olive|oxide|brass|lavender|mauve|sage|crimson|orange|steel`). Use `var(--og-*)` for solids and `rgb(var(--og-*-rgb) / α)` for tints; never hardcode a hex in a component (canvas / Cytoscape / Recharts read concrete values from `chartTheme.ts` or `readTokens()`). Shared classes kept stable for every workstream: `og-card`, `og-card-header`, `og-section-title`, `og-btn-primary|ghost`, `og-icon-btn`, `og-input`, `og-select`, `og-control-*`, `og-badge-olive|oxide|sage|orange|crimson|lavender`, `og-chip`, `og-stamp`, `og-kicker`, `og-frame`, `og-skeleton`, `og-table*`.
 
-**Responsive and accessible:** landing hero/analyst sections stack below 960 px; bento and steps collapse to 2 then 1 column; the investigation grid stacks below 1280 px. Focus rings are visible everywhere (`:focus-visible` cyan outline); status is never colour-only (risk tiers, signal strength and confidence carry text labels); charts provide table views; all motion respects `prefers-reduced-motion`.
+**Responsive and accessible:** landing hero/analyst sections stack below 960 px; bento and steps collapse to 2 then 1 column; the investigation grid stacks below 1280 px. Focus rings are visible everywhere (`:focus-visible` olive outline); status is never colour-only (risk tiers, signal strength and confidence carry text labels); charts provide table views; all motion respects `prefers-reduced-motion`.
 
 ## 6. Forms & validation
 
@@ -89,5 +106,5 @@ Signature details: viewfinder corner marks (`.og-frame`) on key panels, Instrume
 * Header shows provider/model or "Not configured" (from `GET /ai/status`); a hint names the env var to set.
 * Scope bar: nodes in filter, current **focus** (set by a cluster's Graph / Ask AI action, removable) and the highlighted-node count (click to clear).
 * Thread: questions; structured answers (summary, likely origin with rationale, graded signals with evidence chips, missing evidence, three-step confidence meter, discarded-ID disclosure, context footer with nodes analysed, model and latency); errors with Retry and the rate-limit wait. Persisted per analyst in `sessionStorage`; a divider marks turns asked under different filters; follow-ups send the last four same-filter turns as history.
-* Evidence chips highlight nodes; dashed chips mark IDs outside the current view. "Highlight evidence" emphasises origin (amber ring) and evidence (violet ring) and fades everything else; answers auto-highlight on arrival.
+* Evidence chips highlight nodes; dashed chips mark IDs outside the current view. "Highlight evidence" emphasises origin (oxide ring) and evidence (mauve ring) and fades everything else; answers auto-highlight on arrival.
 * Composer: suggested prompts (cluster-specific when focused), auto-growing textarea, Enter to send / Shift+Enter for a newline, Stop button with a real elapsed timer while waiting.

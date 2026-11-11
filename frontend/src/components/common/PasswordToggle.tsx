@@ -5,7 +5,7 @@ export const PasswordToggle: React.FC<{ visible: boolean; onToggle: () => void }
   <button
     type="button"
     onClick={onToggle}
-    className="grid place-items-center w-8 h-8 rounded-md text-ink/50 hover:text-accent-cyan hover:bg-white/5 transition-colors"
+    className="grid place-items-center w-8 h-8 rounded-md text-ink/50 hover:text-accent-olive hover:bg-ink/5 transition-colors"
     aria-label={visible ? 'Hide password' : 'Show password'}
     aria-pressed={visible}
   >

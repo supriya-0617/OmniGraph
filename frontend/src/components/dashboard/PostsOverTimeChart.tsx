@@ -19,7 +19,7 @@ export const PostsOverTimeChart: React.FC<Props> = ({ data, updating }) => {
     <ChartCard
       kicker="Activity"
       title="Posts over time"
-      icon={<Activity className="w-4 h-4 text-accent-cyan" strokeWidth={1.75} aria-hidden="true" />}
+      icon={<Activity className="w-4 h-4 text-accent-olive" strokeWidth={1.75} aria-hidden="true" />}
       meta={peak && <span className="og-badge hidden sm:inline-flex">Peak {formatNumber(peak.count)} · {peak.label}</span>}
       legend={rows.length ? (
         <>
@@ -50,7 +50,7 @@ export const PostsOverTimeChart: React.FC<Props> = ({ data, updating }) => {
               <XAxis dataKey="label" {...axisProps} minTickGap={24} />
               <YAxis {...axisProps} axisLine={false} width={40} allowDecimals={false} />
               <Tooltip
-                cursor={{ stroke: 'rgba(34,225,255,0.45)', strokeWidth: 1 }}
+                cursor={{ stroke: CHART.cursorLine, strokeWidth: 1 }}
                 content={({ active, payload, label }) => (
                   <ChartTooltip
                     active={active}

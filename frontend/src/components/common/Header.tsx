@@ -15,7 +15,7 @@ export const Header: React.FC = () => {
       className="dashboard-header sticky top-0 z-50"
       style={{
         borderBottom: '1px solid var(--og-border)',
-        background: 'rgba(6, 8, 14, 0.72)',
+        background: 'rgb(var(--og-bg-rgb) / 0.72)',
         backdropFilter: 'blur(22px) saturate(150%)',
         WebkitBackdropFilter: 'blur(22px) saturate(150%)',
       }}
@@ -41,12 +41,12 @@ export const Header: React.FC = () => {
           {user && (
             <span
               className="dashboard-user hidden sm:inline-flex items-center gap-2 max-w-[220px] pl-1 pr-3 py-1 rounded-full text-xs"
-              style={{ border: '1px solid var(--og-border)', background: 'rgba(255,255,255,0.03)' }}
+              style={{ border: '1px solid var(--og-border)', background: 'rgb(var(--og-text-rgb) / 0.03)' }}
               title={user.email}
             >
               <span
                 className="grid place-items-center w-7 h-7 rounded-full font-mono text-[10px] font-bold"
-                style={{ background: 'var(--og-cyan)', color: '#02121a' }}
+                style={{ background: 'var(--og-overlay)', border: '1px solid rgb(var(--og-olive-rgb) / 0.4)', color: 'var(--og-olive)' }}
                 aria-hidden="true"
               >
                 {initials}

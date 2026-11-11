@@ -52,20 +52,20 @@ const STEPS = [
 ];
 
 const SIGNALS = [
-  { icon: Server, title: 'Shared infrastructure', body: 'Many accounts behind one datacenter or VPN address.', tone: 'coral' },
-  { icon: Clock3, title: 'Burst timing', body: 'The same narrative from different accounts within minutes.', tone: 'amber' },
-  { icon: Copy, title: 'Copy-paste text', body: 'Near-identical wording measured by word-set overlap.', tone: 'violet' },
-  { icon: Repeat2, title: 'Amplification', body: 'Retweet fan-out onto a single seeding post.', tone: 'cyan' },
-  { icon: UserPlus, title: 'Fresh accounts', body: 'New, low-follower profiles concentrated in one cluster — surfaced to the AI analyst as account age and follower counts.', tone: 'mint' },
-  { icon: ShieldCheck, title: 'Benign context', body: 'Campus and office NAT addresses share IPs too. Infrastructure type is weighed, so coincidence scores low instead of raising a false alarm.', tone: 'mint' },
+  { icon: Server, title: 'Shared infrastructure', body: 'Many accounts behind one datacenter or VPN address.', tone: 'oxide' },
+  { icon: Clock3, title: 'Burst timing', body: 'The same narrative from different accounts within minutes.', tone: 'orange' },
+  { icon: Copy, title: 'Copy-paste text', body: 'Near-identical wording measured by word-set overlap.', tone: 'steel' },
+  { icon: Repeat2, title: 'Amplification', body: 'Retweet fan-out onto a single seeding post.', tone: 'olive' },
+  { icon: UserPlus, title: 'Fresh accounts', body: 'New, low-follower profiles concentrated in one cluster — surfaced to the AI analyst as account age and follower counts.', tone: 'brass' },
+  { icon: ShieldCheck, title: 'Benign context', body: 'Campus and office NAT addresses share IPs too. Infrastructure type is weighed, so coincidence scores low instead of raising a false alarm.', tone: 'sage' },
 ];
 
 const RISK_FACTORS = [
-  { label: 'Size', weight: 30, color: 'var(--og-cyan)' },
-  { label: 'Severity', weight: 25, color: 'var(--og-coral)' },
-  { label: 'Tempo', weight: 20, color: 'var(--og-amber)' },
-  { label: 'Infrastructure', weight: 15, color: 'var(--og-ip)' },
-  { label: 'Duplication', weight: 10, color: 'var(--og-violet)' },
+  { label: 'Size', weight: 30, color: 'var(--og-olive)' },
+  { label: 'Severity', weight: 25, color: 'var(--og-crimson)' },
+  { label: 'Tempo', weight: 20, color: 'var(--og-orange)' },
+  { label: 'Infrastructure', weight: 15, color: 'var(--og-oxide)' },
+  { label: 'Duplication', weight: 10, color: 'var(--og-steel)' },
 ];
 
 const TICKER = [
@@ -144,7 +144,7 @@ export const LandingPage: React.FC = () => {
         {/* ------------------------------------------------------------ hero */}
         <section className="lp-hero og-container" aria-labelledby="hero-title">
           <div className="lp-hero-copy">
-            <span className="og-stamp lp-rise" style={{ color: 'var(--og-cyan)' }}>
+            <span className="og-stamp lp-rise" style={{ color: 'var(--og-olive)' }}>
               <span className="og-dot og-dot-live" /> OSINT · Coordination analysis
             </span>
             <h1 id="hero-title" className="og-display lp-hero-title lp-rise" style={{ animationDelay: '80ms' }}>
@@ -175,7 +175,7 @@ export const LandingPage: React.FC = () => {
               </div>
               <div>
                 <dt className="og-kicker">Active clusters</dt>
-                <dd className="lp-stat-value" style={{ color: 'var(--og-coral)' }}>{format(stats?.coordinated_clusters)}</dd>
+                <dd className="lp-stat-value" style={{ color: 'var(--og-crimson)' }}>{format(stats?.coordinated_clusters)}</dd>
               </div>
             </dl>
             <p className="lp-stats-note og-kicker">
@@ -190,18 +190,18 @@ export const LandingPage: React.FC = () => {
           <figure className="lp-hero-visual og-card og-frame lp-rise" style={{ animationDelay: '200ms' }}>
             <figcaption className="lp-visual-bar">
               <span className="og-kicker"><b>Exhibit 01</b> · network preview</span>
-              <span className="og-stamp" style={{ color: 'var(--og-amber)' }}>Illustrative</span>
+              <span className="og-stamp" style={{ color: 'var(--og-orange)' }}>Illustrative</span>
             </figcaption>
             <div className="lp-visual-canvas">
               <HeroNetwork />
             </div>
             <div className="lp-visual-legend" aria-label="Legend">
               {[
-                ['User', 'var(--og-mint)', 'dot'],
-                ['Post', 'var(--og-amber)', 'square'],
-                ['Hashtag', 'var(--og-violet)', 'diamond'],
-                ['IP', 'var(--og-ip)', 'dot'],
-                ['Coordinated', 'var(--og-coral)', 'dot'],
+                ['User', 'var(--og-sage)', 'dot'],
+                ['Post', 'var(--og-brass)', 'square'],
+                ['Hashtag', 'var(--og-lavender)', 'diamond'],
+                ['IP', 'var(--og-steel)', 'dot'],
+                ['Coordinated', 'var(--og-crimson)', 'dot'],
               ].map(([label, color, shape]) => (
                 <span key={label}><i className={`lp-shape lp-shape-${shape}`} style={{ background: color }} />{label}</span>
               ))}
@@ -249,7 +249,7 @@ export const LandingPage: React.FC = () => {
           </header>
           <div className="lp-bento">
             <article className="lp-tile lp-tile-score og-card og-frame" data-reveal>
-              <span className="og-stamp" style={{ color: 'var(--og-cyan)' }}>Risk score</span>
+              <span className="og-stamp" style={{ color: 'var(--og-olive)' }}>Risk score</span>
               <p className="lp-score-formula">
                 Σ weight × factor <span>∈ [0, 1]</span>
               </p>
@@ -292,15 +292,15 @@ export const LandingPage: React.FC = () => {
               <li><b>Cites</b> node IDs that highlight on the graph; unverifiable IDs are stripped and disclosed.</li>
               <li><b>Grades</b> each signal and states what evidence is missing. No answer is ever faked.</li>
             </ul>
-            <button type="button" className="og-btn-primary og-btn-violet" onClick={openWorkspace}>
+            <button type="button" className="og-btn-primary og-btn-ai" onClick={openWorkspace}>
               Brief the analyst <Bot className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
 
           <div className="lp-answer og-card og-frame" data-reveal aria-label="Illustrative response format">
             <div className="lp-answer-head">
-              <span className="og-kicker" style={{ color: 'var(--og-violet)' }}>Response format</span>
-              <span className="og-stamp" style={{ color: 'var(--og-amber)' }}>Illustrative</span>
+              <span className="og-kicker" style={{ color: 'var(--og-lavender)' }}>Response format</span>
+              <span className="og-stamp" style={{ color: 'var(--og-orange)' }}>Illustrative</span>
             </div>
             <p className="lp-answer-q">› Why is this cluster suspicious?</p>
             <p className="lp-answer-summary">

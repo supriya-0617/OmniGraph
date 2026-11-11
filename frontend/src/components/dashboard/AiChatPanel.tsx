@@ -72,15 +72,15 @@ const FOCUSED_SUGGESTIONS = [
 ];
 
 const STRENGTH_COLOR: Record<SignalStrength, string> = {
-  strong: 'var(--og-coral)',
-  moderate: 'var(--og-amber)',
+  strong: 'var(--og-crimson)',
+  moderate: 'var(--og-orange)',
   weak: 'var(--og-muted)',
 };
 
 const CONFIDENCE: Record<Confidence, { pct: number; color: string; label: string }> = {
-  low: { pct: 33, color: 'var(--og-amber)', label: 'Low' },
-  medium: { pct: 66, color: 'var(--og-cyan)', label: 'Medium' },
-  high: { pct: 100, color: 'var(--og-mint)', label: 'High' },
+  low: { pct: 33, color: 'var(--og-orange)', label: 'Low' },
+  medium: { pct: 66, color: 'var(--og-olive)', label: 'Medium' },
+  high: { pct: 100, color: 'var(--og-sage)', label: 'High' },
 };
 
 const filterKeyOf = (filters: FilterState) =>
@@ -105,12 +105,12 @@ const EvidenceChip: React.FC<{ id: string; label: string | null; visible: boolea
     className="og-chip"
     title={visible ? `Highlight ${id} in the graph` : `${id} is not in the current graph view`}
     style={{
-      ...(active ? { borderColor: 'var(--og-violet)', color: 'var(--og-violet)', background: 'rgba(167,139,250,0.1)' } : {}),
-      ...(origin ? { borderColor: 'rgba(255,184,77,0.55)' } : {}),
+      ...(active ? { borderColor: 'var(--og-lavender)', color: 'var(--og-lavender)', background: 'rgb(var(--og-lavender-rgb) / 0.1)' } : {}),
+      ...(origin ? { borderColor: 'rgb(var(--og-oxide-rgb) / 0.6)' } : {}),
       ...(!visible ? { opacity: 0.55, borderStyle: 'dashed' } : {}),
     }}
   >
-    {origin && <Target className="w-3 h-3 text-accent-amber" aria-hidden="true" />}
+    {origin && <Target className="w-3 h-3 text-accent-oxide" aria-hidden="true" />}
     <span>{label ?? id}</span>
     {label && <span className="text-ink/40">{id}</span>}
   </button>
@@ -157,9 +157,9 @@ const AnswerCard: React.FC<{
       <p className="text-[14px] leading-relaxed text-ink">{answer.summary}</p>
 
       {answer.likely_origin_node_id && (
-        <div className="ai-block" style={{ borderColor: 'rgba(255,184,77,0.3)', background: 'rgba(255,184,77,0.05)' }}>
+        <div className="ai-block" style={{ borderColor: 'rgb(var(--og-oxide-rgb) / 0.32)', background: 'rgb(var(--og-oxide-rgb) / 0.05)' }}>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="og-stamp" style={{ color: 'var(--og-amber)' }}>Likely origin</span>
+            <span className="og-stamp" style={{ color: 'var(--og-oxide)' }}>Likely origin</span>
             <EvidenceChip
               id={answer.likely_origin_node_id}
               label={describeNode(answer.likely_origin_node_id)}
@@ -193,7 +193,7 @@ const AnswerCard: React.FC<{
                       <EvidenceChip key={id} id={id} label={describeNode(id)} visible={isNodeVisible(id)} active={highlighted.has(id)} onClick={() => onHighlight([id])} />
                     ))}
                     {flag.evidence_node_ids.length > 10 && <span className="og-chip cursor-default">+{flag.evidence_node_ids.length - 10}</span>}
-                    <button type="button" className="og-chip" onClick={() => onHighlight(flag.evidence_node_ids)} style={{ color: 'var(--og-violet)' }}>
+                    <button type="button" className="og-chip" onClick={() => onHighlight(flag.evidence_node_ids)} style={{ color: 'var(--og-lavender)' }}>
                       <Crosshair className="w-3 h-3" aria-hidden="true" /> all
                     </button>
                   </div>
@@ -220,7 +220,7 @@ const AnswerCard: React.FC<{
           <span className="og-kicker" style={{ fontSize: 9.5 }}>Confidence</span>
           <span className="flex-1 flex gap-[3px]" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={confidence.pct} aria-label={`Confidence ${confidence.label}`}>
             {[33, 66, 100].map((step) => (
-              <span key={step} className="h-[5px] flex-1 rounded-[1px]" style={{ background: confidence.pct >= step ? confidence.color : 'rgba(150,170,215,0.12)' }} />
+              <span key={step} className="h-[5px] flex-1 rounded-[1px]" style={{ background: confidence.pct >= step ? confidence.color : 'rgb(var(--og-muted-rgb) / 0.12)' }} />
             ))}
           </span>
           <span className="text-[12px] font-semibold" style={{ color: confidence.color }}>{confidence.label}</span>
@@ -229,7 +229,7 @@ const AnswerCard: React.FC<{
       </div>
 
       {answer.discarded_node_ids.length > 0 && (
-        <p className="flex items-start gap-2 text-[11px] text-accent-amber/90">
+        <p className="flex items-start gap-2 text-[11px] text-accent-orange/90">
           <AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" aria-hidden="true" />
           The model cited {answer.discarded_node_ids.length} ID{answer.discarded_node_ids.length > 1 ? 's' : ''} not present in the analysed sub-graph ({answer.discarded_node_ids.slice(0, 4).join(', ')}); they were removed from the evidence.
         </p>
@@ -238,7 +238,7 @@ const AnswerCard: React.FC<{
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
         <div className="flex flex-wrap gap-2">
           {allEvidence.length > 0 && (
-            <button type="button" className="og-btn-primary og-btn-violet min-h-[32px] px-3 text-[11.5px]" onClick={() => onHighlight(allEvidence, answer.likely_origin_node_id)}>
+            <button type="button" className="og-btn-primary og-btn-ai min-h-[32px] px-3 text-[11.5px]" onClick={() => onHighlight(allEvidence, answer.likely_origin_node_id)}>
               <Crosshair className="w-3.5 h-3.5" aria-hidden="true" /> Highlight evidence ({visibleCount}/{allEvidence.length} in view)
             </button>
           )}
@@ -384,14 +384,14 @@ export const AiChatPanel: React.FC<Props> = ({
         >
           <span className="ai-avatar" aria-hidden="true"><Bot className="w-4 h-4" strokeWidth={1.75} /></span>
           <span className="min-w-0">
-            <span className="og-kicker block" style={{ color: 'var(--og-violet)', fontSize: 9.5 }}>GraphRAG</span>
+            <span className="og-kicker block" style={{ color: 'var(--og-lavender)', fontSize: 9.5 }}>GraphRAG</span>
             <span className="block text-[14px] font-semibold text-ink truncate">Forensic Analyst</span>
           </span>
         </button>
         <div className="flex items-center gap-1.5 shrink-0">
           {status && (
-            <span className={status.configured ? 'og-badge-violet hidden sm:inline-flex' : 'og-badge hidden sm:inline-flex'} title={status.detail ?? `${status.provider} · ${status.model}`}>
-              <span className="og-dot" style={{ color: status.configured ? 'var(--og-violet)' : 'var(--og-subtle)' }} />
+            <span className={status.configured ? 'og-badge-lavender hidden sm:inline-flex' : 'og-badge hidden sm:inline-flex'} title={status.detail ?? `${status.provider} · ${status.model}`}>
+              <span className="og-dot" style={{ color: status.configured ? 'var(--og-lavender)' : 'var(--og-subtle)' }} />
               {status.configured ? status.model : 'Not configured'}
             </span>
           )}
@@ -413,13 +413,13 @@ export const AiChatPanel: React.FC<Props> = ({
             <span className="og-kicker" style={{ fontSize: 9 }}>Scope</span>
             <span className="text-[11px] text-ink/70 font-mono">{nodesInView} nodes in filter</span>
             {focus && (
-              <span className="og-badge-cyan">
+              <span className="og-badge-olive">
                 <Target className="w-3 h-3" aria-hidden="true" /> {focus.label}
                 <button type="button" onClick={onClearFocus} aria-label="Clear focus" className="hover:text-ink"><X className="w-3 h-3" /></button>
               </span>
             )}
             {highlightedIds.length > 0 && (
-              <button type="button" className="og-badge-violet hover:brightness-125" onClick={onClearHighlight}>
+              <button type="button" className="og-badge-lavender hover:brightness-125" onClick={onClearHighlight}>
                 {highlightedIds.length} highlighted <X className="w-3 h-3" aria-hidden="true" />
               </button>
             )}
@@ -428,10 +428,13 @@ export const AiChatPanel: React.FC<Props> = ({
           <div ref={scrollRef} className="ai-thread flex-1 min-h-0 overflow-y-auto" aria-live="polite">
             {!token && <p className="ai-notice">Sign in to brief the forensic analyst.</p>}
             {token && notConfigured && (
-              <div className="ai-notice" style={{ borderColor: 'rgba(255,184,77,0.35)' }}>
-                <p className="flex items-center gap-2 font-semibold text-accent-amber text-[12px]"><AlertTriangle className="w-3.5 h-3.5" /> AI provider not configured</p>
+              <div className="ai-notice" style={{ borderColor: 'rgb(var(--og-orange-rgb) / 0.35)' }}>
+                <p className="flex items-center gap-2 font-semibold text-accent-orange text-[12px]"><AlertTriangle className="w-3.5 h-3.5" /> AI provider not configured</p>
                 <p className="mt-1.5 text-[12px] text-ink/65 leading-relaxed">
-                  {status?.detail} Add <code className="text-ink">LLM_API_KEY</code> (and optionally <code className="text-ink">LLM_PROVIDER</code> / <code className="text-ink">LLM_MODEL</code>) to <code className="text-ink">backend/.env</code> and restart the API.
+                  {status?.detail}{' '}
+                  {status?.provider === 'vertex'
+                    ? <>Run <code className="text-ink">gcloud auth application-default login</code>, set <code className="text-ink">VERTEX_PROJECT_ID</code> in <code className="text-ink">backend/.env</code>, then restart the API.</>
+                    : <>Set <code className="text-ink">LLM_API_KEY</code> in <code className="text-ink">backend/.env</code> and restart the API.</>}
                 </p>
               </div>
             )}
@@ -441,7 +444,7 @@ export const AiChatPanel: React.FC<Props> = ({
 
             {entries.length === 0 && !pending && token && hasGraphData && (
               <div className="ai-intro">
-                <Sparkles className="w-5 h-5 text-accent-violet" aria-hidden="true" />
+                <Sparkles className="w-5 h-5 text-accent-lavender" aria-hidden="true" />
                 <p className="text-[13px] text-ink/80 leading-relaxed">
                   Ask about the <b className="text-ink">currently filtered graph</b>. Answers cite node IDs you can highlight, grade each signal and say what evidence is missing.
                 </p>
@@ -455,9 +458,9 @@ export const AiChatPanel: React.FC<Props> = ({
                   {filtersChanged && <div className="ai-divider"><span>Filters changed</span></div>}
                   <article className="ai-turn">
                     <div className="ai-question">
-                      <span className="text-accent-violet" aria-hidden="true">›</span>
+                      <span className="text-accent-lavender" aria-hidden="true">›</span>
                       <span>{entry.question}</span>
-                      {entry.focusLabel && <span className="og-badge-cyan ml-auto shrink-0">{entry.focusLabel}</span>}
+                      {entry.focusLabel && <span className="og-badge-olive ml-auto shrink-0">{entry.focusLabel}</span>}
                     </div>
                     {entry.answer && (
                       <AnswerCard answer={entry.answer} describeNode={describeNode} isNodeVisible={isNodeVisible} highlighted={highlighted} onHighlight={onHighlight} />
@@ -465,7 +468,7 @@ export const AiChatPanel: React.FC<Props> = ({
                     {entry.error && (
                       <div role="alert" className="ai-error">
                         <p className="flex items-start gap-2 text-[12px] text-ink/85">
-                          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-accent-coral" aria-hidden="true" />
+                          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-accent-crimson" aria-hidden="true" />
                           <span>
                             {entry.error.message}
                             {entry.error.status === 429 && entry.error.retryAfter ? ` (retry in ~${entry.error.retryAfter}s)` : ''}
@@ -486,7 +489,7 @@ export const AiChatPanel: React.FC<Props> = ({
             {pending && (
               <article className="ai-turn" aria-busy="true">
                 <div className="ai-question">
-                  <span className="text-accent-violet" aria-hidden="true">›</span>
+                  <span className="text-accent-lavender" aria-hidden="true">›</span>
                   <span>{pending.question}</span>
                 </div>
                 <div className="ai-pending">

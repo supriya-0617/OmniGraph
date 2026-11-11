@@ -13,10 +13,10 @@ interface Props {
 }
 
 const TYPE_META: Record<string, { icon: React.ElementType; color: string }> = {
-  User: { icon: User, color: 'var(--og-mint)' },
-  Post: { icon: MessageSquare, color: 'var(--og-amber)' },
-  Hashtag: { icon: Hash, color: 'var(--og-violet)' },
-  IPAddress: { icon: Network, color: 'var(--og-ip)' },
+  User: { icon: User, color: 'var(--og-sage)' },
+  Post: { icon: MessageSquare, color: 'var(--og-brass)' },
+  Hashtag: { icon: Hash, color: 'var(--og-lavender)' },
+  IPAddress: { icon: Network, color: 'var(--og-steel)' },
 };
 
 const RELATION_LABEL: Record<string, [string, string]> = {
@@ -35,7 +35,7 @@ function display(node: GraphNode): string {
 }
 
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="flex justify-between gap-3 py-1.5" style={{ borderBottom: '1px solid rgba(150,170,215,0.08)' }}>
+  <div className="flex justify-between gap-3 py-1.5" style={{ borderBottom: '1px solid rgb(var(--og-muted-rgb) / 0.08)' }}>
     <span className="text-ink/50 shrink-0">{label}</span>
     <span className="text-right text-ink/90 break-all">{children}</span>
   </div>
@@ -86,26 +86,26 @@ export const NodeDetailPanel: React.FC<Props> = ({ node, onClose, graphData, onS
 
       <div className="px-4 py-3 space-y-0.5">
         {node.props.flagged !== undefined && (
-          <div className="flex items-center justify-between gap-3 py-1.5" style={{ borderBottom: '1px solid rgba(150,170,215,0.08)' }}>
+          <div className="flex items-center justify-between gap-3 py-1.5" style={{ borderBottom: '1px solid rgb(var(--og-muted-rgb) / 0.08)' }}>
             <span className="text-ink/50">Status</span>
             {node.props.flagged ? (
-              <span className="og-badge-danger"><ShieldAlert className="w-3 h-3" aria-hidden="true" /> Flagged</span>
+              <span className="og-badge-crimson"><ShieldAlert className="w-3 h-3" aria-hidden="true" /> Flagged</span>
             ) : (
-              <span className="og-badge-mint">Not flagged</span>
+              <span className="og-badge-sage">Not flagged</span>
             )}
           </div>
         )}
         {node.props.text && (
-          <div className="py-2" style={{ borderBottom: '1px solid rgba(150,170,215,0.08)' }}>
+          <div className="py-2" style={{ borderBottom: '1px solid rgb(var(--og-muted-rgb) / 0.08)' }}>
             <span className="text-ink/50 block mb-1.5">Post text</span>
-            <p className="font-sans text-[12px] leading-relaxed text-ink/90 rounded-md p-2.5" style={{ background: 'rgba(4,6,11,0.6)', border: '1px solid var(--og-border)' }}>
+            <p className="font-sans text-[12px] leading-relaxed text-ink/90 rounded-md p-2.5" style={{ background: 'rgb(var(--og-bg-rgb) / 0.6)', border: '1px solid var(--og-border)' }}>
               “{node.props.text}”
             </p>
           </div>
         )}
         {node.props.severity !== undefined && (
           <Row label="Severity">
-            <span style={{ color: Number(node.props.severity) >= 0.7 ? 'var(--og-coral)' : 'var(--og-text)' }}>{Math.round(Number(node.props.severity) * 100)}%</span>
+            <span style={{ color: Number(node.props.severity) >= 0.7 ? 'var(--og-crimson)' : 'var(--og-text)' }}>{Math.round(Number(node.props.severity) * 100)}%</span>
           </Row>
         )}
         {node.props.platform && <Row label="Platform">{node.props.platform}</Row>}
@@ -113,14 +113,14 @@ export const NodeDetailPanel: React.FC<Props> = ({ node, onClose, graphData, onS
         {node.props.follower_count !== undefined && <Row label="Followers">{Number(node.props.follower_count).toLocaleString()}</Row>}
         {createdDaysAgo !== null && (
           <Row label="Account age">
-            <span style={{ color: createdDaysAgo < 60 ? 'var(--og-amber)' : undefined }}>
+            <span style={{ color: createdDaysAgo < 60 ? 'var(--og-orange)' : undefined }}>
               {createdDaysAgo} days{createdDaysAgo < 60 ? ' · new' : ''}
             </span>
           </Row>
         )}
         {node.props.network_type && <Row label="Network">{node.props.network_type}</Row>}
         {(node.props.geo_region || node.props.geo) && <Row label="Region">{node.props.geo_region ?? node.props.geo}</Row>}
-        <Row label="Node ID"><span className="text-accent-cyan">{node.id}</span></Row>
+        <Row label="Node ID"><span className="text-accent-olive">{node.id}</span></Row>
       </div>
 
       {connections.length > 0 && (
@@ -153,7 +153,7 @@ export const NodeDetailPanel: React.FC<Props> = ({ node, onClose, graphData, onS
             </button>
           )}
           {onAskAi && (
-            <button type="button" className="og-btn-primary og-btn-violet flex-1 min-h-[34px] text-[11.5px]" onClick={() => onAskAi(node)}>
+            <button type="button" className="og-btn-primary og-btn-ai flex-1 min-h-[34px] text-[11.5px]" onClick={() => onAskAi(node)}>
               <Bot className="w-3.5 h-3.5" aria-hidden="true" /> Ask AI
             </button>
           )}

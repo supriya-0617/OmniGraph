@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     NEO4J_DATABASE: str = ""
     NEO4J_RECONNECT_SECONDS: float = 15.0
 
+    # MongoDB stores analyst accounts; Neo4j remains the graph store.
+    MONGODB_URI: str = ""
+    MONGODB_DATABASE: str = "omnigraph"
+    MONGODB_ACCOUNTS_COLLECTION: str = "accounts"
+    MONGODB_SERVER_SELECTION_TIMEOUT_MS: int = 5000
+
     # Auth
     JWT_SECRET: str = _DEFAULT_JWT_SECRET
     JWT_ALGORITHM: str = "HS256"
@@ -41,7 +47,9 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     # GraphRAG / LLM — see app/ai/llm_client.py for the provider matrix.
-    LLM_PROVIDER: str = "gemini"
+    # Vertex uses Google Application Default Credentials (ADC), so local
+    # development works without placing a provider key in the repository.
+    LLM_PROVIDER: str = "vertex"
     LLM_API_KEY: str = ""
     LLM_MODEL: str = ""
     LLM_BASE_URL: str = ""
@@ -56,7 +64,9 @@ class Settings(BaseSettings):
     SIMULATOR_ENABLED: bool = False
     SIMULATOR_INTERVAL_SECONDS: float = 20.0
 
-    @field_validator("NEO4J_URI", "NEO4J_PASSWORD", "LLM_API_KEY", "LLM_MODEL", mode="before")
+    @field_validator(
+        "NEO4J_URI", "NEO4J_PASSWORD", "MONGODB_URI", "LLM_API_KEY", "LLM_MODEL", mode="before"
+    )
     @classmethod
     def _strip(cls, value):
         return value.strip() if isinstance(value, str) else value
