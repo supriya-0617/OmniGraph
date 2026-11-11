@@ -115,9 +115,3 @@ python -m unittest test_phase2_backend test_phase3_backend test_analytics test_d
 ## Environment Variables
 
 Every backend variable is documented in `backend/.env.example`; frontend variables in `frontend/.env.example`. Real values go in the gitignored `backend/.env` / `frontend/.env` — never in `*.env.example`.
-
-## Milestones
-
-- **Phase 1** — COMPLETE ✅ (Frontend scaffolding, UI/UX screens, login/register forms, validation, FastAPI backend, Neo4j layer, JWT auth, seed script)
-- **09-10-2026** — Phase 2: Backend CRUD, graph query endpoints, analytics calculation queries
-- **10-11-2026** — Phase 3: Final submission, GraphRAG LLM integration, deployment
