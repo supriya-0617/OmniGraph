@@ -35,6 +35,7 @@
 | `id` | string |
 | `address` | string (can be a fake/simulated IP) |
 | `geo_region` | string, optional |
+| `network_type` | string, optional — `datacenter`, `vpn`, `proxy`, `residential`, `corporate`, `university`; feeds the cluster risk score's *infrastructure* factor (unknown = 0.5) |
 
 ### `:Account` (login users of the OmniGraph app itself — not the OSINT `:User` entities)
 | Property | Type |
@@ -118,3 +119,92 @@ SET r.timestamp = p.timestamp
 ```
 
 Hashtags are matched or created by their unique `tag`, then linked with `(:Post)-[:MENTIONS]->(:Hashtag)`. User IP changes replace the user's `POSTED_FROM` relationship and keep its `ip_hash` property synchronized. The API query implementations are in `backend/app/routes/entities.py`.
+
+## 5. Phase 3 queries (analytics, GraphRAG, seeding)
+
+All are parameterised; filter predicates come from `GraphFilters.post_predicates()`:
+`($from_date IS NULL OR p.timestamp >= $from_date) AND ($to_date IS NULL OR p.timestamp <= $to_date) AND ($platform IS NULL OR p.platform = $platform) AND p.severity >= $min_severity`.
+
+**Coordination pairs** — `backend/app/analytics.py::CLUSTER_PAIR_QUERY`. Python groups the pairs by (IP, hashtag) and computes window, severity, duplication and the risk score (`aggregate_clusters`). The in-memory store builds identical pair records.
+```cypher
+MATCH (u1:User)-[:POSTED_FROM]->(ip:IPAddress)<-[:POSTED_FROM]-(u2:User)
+WHERE u1.id < u2.id
+MATCH (u1)-[:POSTED]->(p1:Post)-[:MENTIONS]->(h:Hashtag)<-[:MENTIONS]-(p2:Post)<-[:POSTED]-(u2)
+WHERE p1.id <> p2.id
+  AND abs(duration.inSeconds(p1.timestamp, p2.timestamp).seconds) <= $window_seconds   // 3600
+  AND <predicates on p1> AND <predicates on p2>
+RETURN ip.id, ip.address, ip.network_type, h.tag,
+       u1.id, u1.handle, u1.flagged, u2.id, u2.handle, u2.flagged,
+       p1.id, p1.timestamp, p1.severity, p1.text, p1.platform,
+       p2.id, p2.timestamp, p2.severity, p2.text, p2.platform
+```
+
+**Dashboard summary** — `backend/app/routes/analytics.py::SUMMARY_QUERY` (one round trip; `$post_ids` is the cluster post set when `min_density > 1`, otherwise `null`). It is run twice when a date range is set: once for the window, once for the previous equal-length window (KPI trends).
+```cypher
+MATCH (p:Post)
+WHERE <predicates> AND ($post_ids IS NULL OR p.id IN $post_ids)
+WITH collect(p) AS posts
+CALL { WITH posts UNWIND posts AS p
+       RETURN count(p) AS total_posts, avg(p.severity) AS avg_severity,
+              sum(CASE WHEN p.severity >= $high THEN 1 ELSE 0 END) AS high_severity_posts }
+CALL { WITH posts UNWIND posts AS p
+       OPTIONAL MATCH (u:User)-[r:POSTED|RETWEETED]->(p)
+       RETURN count(DISTINCT CASE WHEN type(r) = 'POSTED' THEN u END) AS total_accounts,
+              count(DISTINCT CASE WHEN u.flagged = true THEN u END) AS total_flagged_users }
+CALL { WITH posts UNWIND posts AS p
+       RETURN collect({bucket: toString(date(p.timestamp)), count: 1,
+                       high: CASE WHEN p.severity >= $high THEN 1 ELSE 0 END}) AS day_rows }
+CALL { WITH posts UNWIND posts AS p MATCH (p)-[:MENTIONS]->(h:Hashtag)
+       WITH h.tag AS tag, count(DISTINCT p) AS count ORDER BY count DESC, tag LIMIT 10
+       RETURN collect({tag: tag, count: count}) AS top_hashtags }
+CALL { WITH posts UNWIND posts AS p
+       WITH coalesce(p.platform, 'Unknown') AS platform, count(p) AS count ORDER BY count DESC
+       RETURN collect({platform: platform, count: count}) AS platform_breakdown }
+RETURN total_posts, avg_severity, high_severity_posts, total_accounts, total_flagged_users,
+       day_rows, top_hashtags, platform_breakdown, [p IN posts | p.severity] AS severities
+```
+
+**GraphRAG retrieval** — `POST /ai/query` reuses the `GET /graph` queries (`backend/app/routes/graph.py`) and the coordination-pair query above; prioritisation and bounding (120 nodes / 260 edges) happen in `backend/app/ai/context.py`. No extra Cypher is sent to the model.
+
+**Public landing stats** — `GET /public/stats` (counts only, cached 60 s): `MATCH (n:User) RETURN count(n)` (likewise `Post`, `Hashtag`, `IPAddress`).
+
+**Session check** — `GET /auth/me` only decodes the JWT; no query.
+
+**Seeding** — `backend/scripts/seed_data.py` writes the dataset from `backend/app/data/synthetic.py` in batches of 500:
+```cypher
+UNWIND $rows AS row MERGE (n:User {id: row.id}) SET n += row          // likewise Post, IPAddress
+UNWIND $rows AS row MERGE (n:Hashtag {tag: row.tag}) ON CREATE SET n.id = row.id   // reuse existing tags
+UNWIND $rows AS row
+MATCH (a:User {id: row.source}) MATCH (b:Post {id: row.target})        // labels per relationship type
+MERGE (a)-[r:POSTED]->(b) SET r += row.props
+// MENTIONS edges match the hashtag by tag: MATCH (b:Hashtag {tag: row.target})
+// pre-flight: refuse if an ID exists with different content (likewise Post.text, IPAddress.address, Hashtag.tag)
+UNWIND $rows AS row MATCH (n:User {id: row.id}) WHERE n.handle <> row.value RETURN n.id
+// --reset / --purge-demo delete only namespaced nodes (Account and other data never touched):
+MATCH (n) WHERE (n:User OR n:Post OR n:Hashtag OR n:IPAddress)
+  AND any(prefix IN $prefixes WHERE n.id STARTS WITH prefix)   // ['usr_','pst_','tag_','net_'] / ['demo_']
+CALL { WITH n DETACH DELETE n } IN TRANSACTIONS OF 1000 ROWS
+```
+An extra index `post_platform` is created alongside the §4 constraints.
+
+**Live-stream simulator** (optional, `SIMULATOR_ENABLED=true`) — `backend/app/simulator.py`:
+```cypher
+MATCH (u:User {id: $author_id})
+MERGE (p:Post {id: $id})
+SET p.text = $text, p.timestamp = datetime($timestamp), p.platform = u.platform,
+    p.severity = $severity, p.language = $language
+MERGE (u)-[r:POSTED]->(p) SET r.timestamp = p.timestamp
+WITH p UNWIND $hashtags AS tag
+MERGE (h:Hashtag {tag: tag}) ON CREATE SET h.id = randomUUID()
+MERGE (p)-[:MENTIONS]->(h)
+```
+
+**Live demo burst** — `POST /demo/coordination` (`backend/app/routes/demo.py`, data from `synthetic.demo_burst`), one write transaction:
+```cypher
+CREATE (ip:IPAddress) SET ip = $ip
+CREATE (h:Hashtag) SET h = $hashtag
+UNWIND $rows AS row CREATE (u:User) SET u = row
+UNWIND $rows AS row CREATE (p:Post) SET p = row
+UNWIND $rows AS row MATCH (a:User {id: row.source}) MATCH (b:IPAddress {id: row.target})
+CREATE (a)-[r:POSTED_FROM]->(b) SET r = row.props      // likewise POSTED, MENTIONS, RETWEETED
+```

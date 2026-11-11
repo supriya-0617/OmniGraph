@@ -1,39 +1,360 @@
+"""The ONLY module that talks to an LLM provider (AGENTS.md rule 3).
+
+Switch providers with environment variables — no code changes:
+
+=============  ==================================================  ==============================
+LLM_PROVIDER   Credentials                                         Default LLM_MODEL
+=============  ==================================================  ==============================
+gemini         LLM_API_KEY from Google AI Studio                    gemini-3.8-flash
+vertex         Vertex AI (bills Google Cloud credits, e.g. the      gemini-3.8-flash
+               $300 trial). OAuth via a service-account file
+               (GOOGLE_APPLICATION_CREDENTIALS) or Application
+               Default Credentials (`gcloud auth application-default
+               login`). VERTEX_PROJECT_ID optional with ADC. With
+               no project, a Vertex *express* API key in LLM_API_KEY
+               (AI Studio keys are NOT accepted by Vertex).
+openai         LLM_API_KEY; LLM_BASE_URL for any OpenAI-compatible  (required)
+               endpoint (OpenRouter, Groq, Ollama, …)
+anthropic      LLM_API_KEY                                          claude-sonnet-5-5
+=============  ==================================================  ==============================
+
+For the strongest reasoning set ``LLM_MODEL=gemini-4-argon`` (slower; raise
+``LLM_TIMEOUT_SECONDS`` to ~90).
+
+Failures raise :class:`LLMAdapterError` with a human-readable message; this module
+never fabricates an answer.
+"""
+from __future__ import annotations
+
+import json
 import logging
-from typing import Dict, Any, Optional
+import threading
+import time
+from dataclasses import dataclass
+from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.parse import quote
+from urllib.request import Request, urlopen
+
 from app.config import settings
 
 logger = logging.getLogger("omnigraph.ai")
 
+DEFAULT_MODELS = {
+    "gemini": "gemini-3.8-flash",
+    "vertex": "gemini-3.8-flash",
+    "anthropic": "claude-sonnet-5-5",
+    "openai": "",
+}
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+
+class LLMAdapterError(RuntimeError):
+    def __init__(self, message: str, *, retryable: bool = False, status: int | None = None):
+        super().__init__(message)
+        self.retryable = retryable
+        self.status = status
+
+
+@dataclass
+class LLMResult:
+    data: dict[str, Any]
+    provider: str
+    model: str
+    latency_ms: int
+
+
 class LLMAdapter:
-    """
-    Isolated adapter for GraphRAG LLM queries.
-    Provider choice (Gemini / OpenAI / Anthropic) is encapsulated here per AGENTS.md.
-    """
-    def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or settings.LLM_API_KEY
-        self.provider = "gemini"  # Currently leaning Gemini per tech stack spec
+    def __init__(self, provider: str | None = None, api_key: str | None = None, model: str | None = None):
+        self._provider = provider
+        self._api_key = api_key
+        self._model = model
 
-    def generate_forensic_analysis(self, serialized_subgraph: str, question: str) -> Dict[str, Any]:
-        """
-        Phase 1 interface stub for GraphRAG queries.
-        Phase 3 will implement full sub-graph prompt construction and LLM inference.
-        """
-        if not serialized_subgraph or serialized_subgraph.strip() == "":
-            return {
-                "summary": "No active node data found in the current dashboard filter.",
-                "likely_origin_node_id": None,
-                "coordination_flags": [],
-                "confidence_note": "Filter return was empty."
-            }
+    # Read settings lazily so tests and hot env changes see current values.
+    @property
+    def provider(self) -> str:
+        return (self._provider or settings.LLM_PROVIDER or "gemini").strip().lower()
 
-        logger.info(f"Submitting GraphRAG query to provider {self.provider}")
+    @property
+    def api_key(self) -> str:
+        return self._api_key if self._api_key is not None else settings.LLM_API_KEY
+
+    @property
+    def model(self) -> str:
+        return self._model or settings.LLM_MODEL or DEFAULT_MODELS.get(self.provider, "")
+
+    # ------------------------------------------------------------------ status
+    def status(self) -> dict[str, Any]:
+        problem = self._configuration_problem()
+        return {"configured": problem is None, "provider": self.provider, "model": self.model, "detail": problem}
+
+    def _configuration_problem(self) -> str | None:
+        if self.provider not in DEFAULT_MODELS:
+            return f"Unknown LLM_PROVIDER '{self.provider}'. Use gemini, vertex, openai or anthropic."
+        if not self.model:
+            return f"LLM_MODEL is required for provider '{self.provider}'."
+        if self.provider == "vertex":
+            if _vertex_uses_oauth(self.api_key):
+                return _google_credentials.problem()
+            if self.api_key:
+                return None
+            return ("Vertex AI needs Google Cloud credentials: run `gcloud auth application-default login`, "
+                    "or set GOOGLE_APPLICATION_CREDENTIALS to a service-account JSON file.")
+        if not self.api_key:
+            return "LLM_API_KEY is not configured on the server."
+        return None
+
+    # ------------------------------------------------------------------ public API
+    def generate_forensic_analysis(self, system_prompt: str, user_prompt: str) -> LLMResult:
+        problem = self._configuration_problem()
+        if problem:
+            raise LLMAdapterError(problem)
+        started = time.monotonic()
+        call = {
+            "gemini": self._call_gemini,
+            "vertex": self._call_vertex,
+            "openai": self._call_openai,
+            "anthropic": self._call_anthropic,
+        }[self.provider]
+        try:
+            text = call(system_prompt, user_prompt)
+        except LLMAdapterError as error:
+            if not error.retryable:
+                raise
+            logger.warning("LLM call failed (%s); retrying once", error)
+            time.sleep(1.5)
+            text = call(system_prompt, user_prompt)
+        latency = int((time.monotonic() - started) * 1000)
+        logger.info("GraphRAG analysis via %s/%s in %d ms", self.provider, self.model, latency)
+        return LLMResult(parse_json_response(text), self.provider, self.model, latency)
+
+    # ------------------------------------------------------------------ providers
+    def _gemini_body(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
         return {
-            "summary": "Sub-graph analysis indicates high-density interaction around bot cluster nodes sharing common IP infrastructure.",
-            "likely_origin_node_id": "p_seed_001",
-            "coordination_flags": [
-                {"cluster_ip": "192.168.1.105", "user_ids": ["u_bot_01", "u_bot_02", "u_bot_03"]}
-            ],
-            "confidence_note": "Phase 1 LLM adapter interface stub ready for Phase 3 integration."
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.2,
+                "maxOutputTokens": settings.LLM_MAX_OUTPUT_TOKENS,
+            },
         }
+
+    def _call_gemini(self, system_prompt: str, user_prompt: str) -> str:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{quote(self.model)}:generateContent"
+        payload = _post_json(url, self._gemini_body(system_prompt, user_prompt), {"x-goog-api-key": self.api_key})
+        return _gemini_text(payload)
+
+    def _call_vertex(self, system_prompt: str, user_prompt: str) -> str:
+        location = settings.VERTEX_LOCATION or "global"
+        host = "aiplatform.googleapis.com" if location == "global" else f"{location}-aiplatform.googleapis.com"
+        model = quote(self.model)
+        if _vertex_uses_oauth(self.api_key):
+            headers, project = _google_credentials.auth_headers()
+            url = (f"https://{host}/v1/projects/{quote(project)}/locations/{quote(location)}"
+                   f"/publishers/google/models/{model}:generateContent")
+        else:  # Vertex AI express-mode API key (no project in the path)
+            headers = {"x-goog-api-key": self.api_key}
+            url = f"https://aiplatform.googleapis.com/v1/publishers/google/models/{model}:generateContent"
+        payload = _post_json(url, self._gemini_body(system_prompt, user_prompt), headers)
+        return _gemini_text(payload)
+
+    def _call_openai(self, system_prompt: str, user_prompt: str) -> str:
+        base = (settings.LLM_BASE_URL or "https://api.openai.com/v1").rstrip("/")
+        payload = _post_json(
+            f"{base}/chat/completions",
+            {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "response_format": {"type": "json_object"},
+            },
+            {"Authorization": f"Bearer {self.api_key}"},
+        )
+        try:
+            choice = payload["choices"][0]
+            if choice.get("finish_reason") == "length":
+                raise LLMAdapterError("LLM output was truncated. Increase the model's output limit.")
+            return choice["message"]["content"]
+        except (KeyError, IndexError, TypeError) as error:
+            raise LLMAdapterError("LLM provider returned no analysis content.") from error
+
+    def _call_anthropic(self, system_prompt: str, user_prompt: str) -> str:
+        payload = _post_json(
+            "https://api.anthropic.com/v1/messages",
+            {
+                "model": self.model,
+                "max_tokens": settings.LLM_MAX_OUTPUT_TOKENS,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": user_prompt}],
+            },
+            {"x-api-key": self.api_key, "anthropic-version": "2023-06-01"},
+        )
+        if payload.get("stop_reason") == "max_tokens":
+            raise LLMAdapterError("LLM output was truncated. Increase LLM_MAX_OUTPUT_TOKENS.")
+        text = "".join(block.get("text", "") for block in payload.get("content", []) if block.get("type") == "text")
+        if not text:
+            raise LLMAdapterError("LLM provider returned no analysis content.")
+        return text
+
+
+# ---------------------------------------------------------------------- helpers
+def _post_json(url: str, body: dict[str, Any], headers: dict[str, str]) -> dict[str, Any]:
+    request = Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json", "User-Agent": "OmniGraph/1.0", **headers},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=settings.LLM_TIMEOUT_SECONDS) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except HTTPError as error:
+        detail = _provider_error_detail(error)
+        if error.code in (401, 403):
+            # Providers explain 403s precisely (billing, disabled API, bad key) - surface that text.
+            message = f"The LLM provider refused the request: {detail}" if detail else (
+                "The LLM provider rejected the API credentials (check LLM_API_KEY / project access)."
+            )
+        elif error.code == 404:
+            message = f"Model not found or not enabled for this key: {detail or 'check LLM_MODEL'}."
+        elif error.code == 429:
+            message = "LLM provider rate limit or quota exceeded. Try again shortly."
+        else:
+            message = f"LLM provider error ({error.code}){': ' + detail if detail else ''}."
+        raise LLMAdapterError(message, retryable=error.code in RETRYABLE_STATUS, status=error.code) from error
+    except (URLError, TimeoutError) as error:
+        raise LLMAdapterError(
+            f"LLM provider timed out or could not be reached (timeout {settings.LLM_TIMEOUT_SECONDS:.0f}s).",
+            retryable=True,
+        ) from error
+    except (OSError, json.JSONDecodeError) as error:
+        raise LLMAdapterError("LLM provider returned an unreadable response.") from error
+
+
+def _provider_error_detail(error: HTTPError) -> str:
+    try:
+        payload = json.loads(error.read().decode("utf-8"))
+        message = payload.get("error", {}).get("message") if isinstance(payload.get("error"), dict) else payload.get("error")
+        return str(message or "")[:400]
+    except Exception:
+        return ""
+
+
+def _gemini_text(payload: dict[str, Any]) -> str:
+    feedback = payload.get("promptFeedback", {})
+    if feedback.get("blockReason"):
+        raise LLMAdapterError(f"The provider blocked the request ({feedback['blockReason']}).")
+    try:
+        candidate = payload["candidates"][0]
+    except (KeyError, IndexError, TypeError) as error:
+        raise LLMAdapterError("LLM provider returned no analysis content.") from error
+    finish = candidate.get("finishReason")
+    if finish == "MAX_TOKENS":
+        raise LLMAdapterError("LLM output was truncated. Increase LLM_MAX_OUTPUT_TOKENS.")
+    if finish in {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "RECITATION"}:
+        raise LLMAdapterError(f"The provider withheld the answer ({finish}).")
+    parts = candidate.get("content", {}).get("parts", [])
+    text = "".join(part.get("text", "") for part in parts if not part.get("thought"))
+    if not text.strip():
+        raise LLMAdapterError("LLM provider returned no analysis content.")
+    return text
+
+
+def _vertex_uses_oauth(api_key: str) -> bool:
+    """OAuth whenever a project or credential file is configured, or no key is given at all."""
+    return bool(settings.VERTEX_PROJECT_ID or settings.GOOGLE_APPLICATION_CREDENTIALS or not api_key)
+
+
+class _GoogleCredentials:
+    """Lazily loaded, cached Google OAuth credentials (service account or ADC), refreshed on expiry."""
+
+    SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._credentials: Any = None
+        self._project: str = ""
+        self._source: str = ""
+        self._error: str | None = None
+
+    def _load(self) -> None:
+        source = settings.GOOGLE_APPLICATION_CREDENTIALS or "adc"
+        if self._source == source and (self._credentials is not None or self._error):
+            return
+        self._source, self._credentials, self._project, self._error = source, None, "", None
+        try:
+            import google.auth  # type: ignore
+        except ImportError:
+            self._error = "Vertex OAuth needs the 'google-auth' package (pip install -r requirements.txt)."
+            return
+        try:
+            if settings.GOOGLE_APPLICATION_CREDENTIALS:
+                credentials, project = google.auth.load_credentials_from_file(
+                    settings.GOOGLE_APPLICATION_CREDENTIALS, scopes=self.SCOPES
+                )
+            else:
+                credentials, project = google.auth.default(scopes=self.SCOPES)
+        except Exception as error:  # DefaultCredentialsError, bad file, ...
+            self._error = (f"Could not load Google Cloud credentials ({error}). Run "
+                           "`gcloud auth application-default login` or set GOOGLE_APPLICATION_CREDENTIALS.")
+            return
+        self._credentials = credentials
+        self._project = settings.VERTEX_PROJECT_ID or project or getattr(credentials, "quota_project_id", "") or ""
+        if not self._project:
+            self._error = "VERTEX_PROJECT_ID is not set and the Google credentials name no project."
+
+    def problem(self) -> str | None:
+        with self._lock:
+            self._load()
+            return self._error
+
+    def auth_headers(self) -> tuple[dict[str, str], str]:
+        with self._lock:
+            self._load()
+            if self._error:
+                raise LLMAdapterError(self._error)
+            try:
+                import google.auth.transport.requests  # type: ignore
+                if not self._credentials.valid:
+                    self._credentials.refresh(google.auth.transport.requests.Request())
+            except Exception as error:
+                raise LLMAdapterError(
+                    f"Could not obtain a Google Cloud access token: {error}. "
+                    "Re-run `gcloud auth application-default login`."
+                ) from error
+            headers: dict[str, str] = {}
+            self._credentials.apply(headers)  # Authorization + x-goog-user-project (quota project)
+            return headers, self._project
+
+    def reset(self) -> None:
+        with self._lock:
+            self._credentials, self._project, self._source, self._error = None, "", "", None
+
+
+_google_credentials = _GoogleCredentials()
+
+
+def parse_json_response(text: str) -> dict[str, Any]:
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    if not cleaned.startswith("{"):
+        start, end = cleaned.find("{"), cleaned.rfind("}")
+        if start != -1 and end > start:
+            cleaned = cleaned[start : end + 1]
+    try:
+        result = json.loads(cleaned)
+    except json.JSONDecodeError as error:
+        raise LLMAdapterError("LLM provider returned malformed JSON.") from error
+    if not isinstance(result, dict):
+        raise LLMAdapterError("LLM provider returned an invalid analysis object.")
+    return result
+
+
+# Backwards-compatible name used by earlier tests.
+_parse_json_response = parse_json_response
 
 llm_client = LLMAdapter()

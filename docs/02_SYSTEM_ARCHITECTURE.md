@@ -52,6 +52,10 @@
 - Single graph holding all entities and interactions. See `04_GRAPH_SCHEMA.md`.
 - Cypher does the heavy lifting for both `/graph` (structural read) and the sub-graph extraction step feeding GraphRAG.
 
+### Account database (MongoDB)
+- Analyst accounts and password hashes are stored in MongoDB using `MONGODB_URI` and `MONGODB_DATABASE`.
+- Neo4j remains the source of truth for investigation entities, relationships, analytics, demo activity and GraphRAG extraction.
+
 ### AI / GraphRAG layer
 - Not a separate service — a Python module inside the backend (`backend/app/ai/`).
 - Responsible for: (1) turning a filter into a Cypher sub-graph query, (2) serializing that sub-graph + associated post text into a prompt, (3) calling the LLM through one adapter function, (4) returning a structured response.

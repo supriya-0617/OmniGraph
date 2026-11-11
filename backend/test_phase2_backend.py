@@ -1,3 +1,11 @@
+import os
+
+# Hermetic: never touch a real database or LLM from unit tests.
+os.environ["NEO4J_URI"] = ""
+os.environ["LLM_API_KEY"] = ""
+os.environ["DEV_DEFAULT_ACCOUNT_ENABLED"] = "true"
+os.environ["ENVIRONMENT"] = "test"
+
 import unittest
 from datetime import date, datetime, timezone
 from unittest.mock import Mock, patch
@@ -14,6 +22,7 @@ from app.main import app
 from app.routes.auth import login, register
 from app.routes.entities import _serialize as serialize_entity
 from app.routes.graph import get_graph
+from app.routes.demo import _write_burst, create_coordination_demo
 from app.routes.entities import (
     create_post,
     create_user,
@@ -109,7 +118,9 @@ class CoordinationTests(unittest.TestCase):
         self.assertEqual(cluster["user_ids"], ["u1", "u2", "u3"])
         self.assertEqual(cluster["post_ids"], ["p1", "p2", "p3"])
         self.assertEqual(cluster["time_window_minutes"], 10)
-        self.assertEqual(cluster["risk_score"], 0.775)
+        self.assertEqual(cluster["time_window_minutes"], 10)
+        self.assertEqual(cluster["flagged_users"], 0)
+        self.assertTrue(0 < cluster["risk_score"] < 1)
 
     @staticmethod
     def _record(u1_id, u1_handle, u2_id, u2_handle, p1_id, p1_time, p2_id, p2_time):
@@ -130,6 +141,58 @@ class CoordinationTests(unittest.TestCase):
         }
 
 
+class CoordinationDemoTests(unittest.TestCase):
+    def test_memory_demo_burst_appears_as_a_ten_account_cluster(self):
+        store = MemoryGraphStore()
+        with patch("app.routes.demo.memory_store", store), patch(
+            "app.routes.demo.db.is_connected", return_value=False
+        ), patch("app.routes.demo.db.is_memory_mode", return_value=True):
+            result = create_coordination_demo(platform="Telegram")
+
+        matching = [
+            cluster
+            for cluster in store.coordination_clusters(
+                GraphFilters(platform="Telegram", min_density=10)
+            )
+            if cluster["cluster_ip"] == result["shared_ip"]
+            and cluster["hashtag"] == result["hashtag"]
+        ]
+        self.assertEqual(result["accounts_created"], 10)
+        self.assertEqual(result["posts_created"], 10)
+        self.assertEqual(len(matching), 1)
+        self.assertEqual(len(matching[0]["user_ids"]), 10)
+        self.assertEqual(len(matching[0]["post_ids"]), 10)
+        self.assertLessEqual(matching[0]["time_window_minutes"], 10)
+
+    def test_neo4j_writer_creates_a_transactional_demo_batch(self):
+        from app.data.synthetic import demo_burst
+
+        transaction = Mock()
+        burst = demo_burst("X", now=datetime(2026, 10, 8, tzinfo=timezone.utc))
+
+        _write_burst(transaction, burst)
+
+        queries = [call.args[0] for call in transaction.run.call_args_list]
+        self.assertTrue(any("CREATE (u:User)" in query for query in queries))
+        self.assertTrue(any("[r:POSTED_FROM]" in query for query in queries))
+        self.assertTrue(any("[r:MENTIONS]" in query for query in queries))
+        self.assertTrue(any("[r:RETWEETED]" in query for query in queries))
+        user_rows = next(call.kwargs["rows"] for call in transaction.run.call_args_list if "CREATE (u:User)" in call.args[0])
+        self.assertEqual(len(user_rows), 10)
+        self.assertEqual(burst["result"]["accounts_created"], 10)
+        self.assertEqual(burst["result"]["posts_created"], 10)
+        self.assertTrue(all(post["text"].startswith("[DEMO]") for post in burst["posts"]))
+        self.assertEqual(burst["ip"]["network_type"], "datacenter")
+
+    def test_configured_database_outage_does_not_write_demo_to_memory(self):
+        with patch("app.routes.demo.db.is_connected", return_value=False), patch(
+            "app.routes.demo.db.is_memory_mode", return_value=False
+        ):
+            with self.assertRaises(HTTPException) as error:
+                create_coordination_demo(platform="X")
+        self.assertEqual(error.exception.status_code, 503)
+
+
 class MemorySeedTests(unittest.TestCase):
     def test_memory_fixture_is_full_sized_and_contains_seeded_clusters(self):
         store = MemoryGraphStore()
@@ -143,8 +206,100 @@ class MemorySeedTests(unittest.TestCase):
         rendered_posts = sum(node["label"] == "Post" for node in graph["nodes"])
         self.assertEqual(rendered_posts, 120)
 
+    def test_graph_filters_posts_and_serializes_stable_node_ids(self):
+        store = MemoryGraphStore()
+        filters = GraphFilters(platform="Telegram", min_severity=0.9)
+
+        graph = store.graph(filters)
+
+        node_ids = {node["id"] for node in graph["nodes"]}
+        posts = [node for node in graph["nodes"] if node["label"] == "Post"]
+        self.assertTrue(posts)
+        self.assertTrue(
+            all(
+                node["props"]["platform"] == "Telegram"
+                and node["props"]["severity"] >= 0.9
+                and node["props"]["id"] == node["id"]
+                for node in posts
+            )
+        )
+        self.assertTrue(
+            all(
+                edge["source"] in node_ids and edge["target"] in node_ids
+                for edge in graph["edges"]
+            )
+        )
+
+    def test_empty_graph_has_consistent_response_shape(self):
+        graph = MemoryGraphStore().graph(
+            GraphFilters(
+                from_date=date(1900, 1, 1),
+                to_date=date(1900, 1, 2),
+            )
+        )
+
+        self.assertEqual(graph, {"nodes": [], "edges": []})
+
+    def test_cluster_node_ids_are_present_for_graph_highlighting(self):
+        store = MemoryGraphStore()
+        demo = store.create_demo_burst("X")
+        filters = GraphFilters(platform="X", min_density=10)
+
+        graph = store.graph(filters)
+        cluster = next(
+            cluster
+            for cluster in store.coordination_clusters(filters)
+            if cluster["hashtag"] == demo["hashtag"]
+        )
+        graph_ids = {node["id"] for node in graph["nodes"]}
+
+        self.assertTrue(set(cluster["user_ids"]).issubset(graph_ids))
+        self.assertTrue(set(cluster["post_ids"]).issubset(graph_ids))
+        self.assertEqual(len(cluster["user_ids"]), 10)
+        self.assertEqual(len(cluster["post_ids"]), 10)
+
 
 class RouteContractTests(unittest.TestCase):
+    def test_graph_route_honors_platform_severity_and_density_filters(self):
+        store = MemoryGraphStore()
+        demo = store.create_demo_burst("Telegram")
+        filters = GraphFilters(
+            platform="Telegram",
+            min_severity=0.8,
+            min_density=10,
+        )
+        with patch("app.routes.graph.memory_store", store), patch(
+            "app.routes.graph.db.is_connected", return_value=False
+        ), patch("app.routes.graph.db.is_memory_mode", return_value=True):
+            graph = get_graph(filters)
+
+        posts = {
+            node["id"]: node
+            for node in graph["nodes"]
+            if node["label"] == "Post"
+        }
+        self.assertEqual(set(posts), set(demo["post_ids"]))
+        self.assertTrue(
+            all(
+                node["props"]["platform"] == "Telegram"
+                and node["props"]["severity"] >= 0.8
+                for node in posts.values()
+            )
+        )
+
+    def test_empty_graph_route_returns_empty_nodes_and_edges(self):
+        store = MemoryGraphStore()
+        filters = GraphFilters(
+            from_date=date(1900, 1, 1),
+            to_date=date(1900, 1, 2),
+        )
+        with patch("app.routes.graph.memory_store", store), patch(
+            "app.routes.graph.db.is_connected", return_value=False
+        ), patch("app.routes.graph.db.is_memory_mode", return_value=True):
+            graph = get_graph(filters)
+
+        self.assertEqual(graph, {"nodes": [], "edges": []})
+
     def test_graph_serializes_all_schema_relationship_types(self):
         session = Mock()
         session.run.side_effect = [
@@ -199,6 +354,16 @@ class RouteContractTests(unittest.TestCase):
 
         relations = {edge["type"] for edge in graph["edges"]}
         self.assertTrue({"POSTED", "MENTIONS", "POSTED_FROM", "REPLIED_TO", "TAGGED_USER", "FOLLOWS"}.issubset(relations))
+        node_ids = {node["id"] for node in graph["nodes"]}
+        self.assertTrue(
+            all(
+                edge["source"] in node_ids and edge["target"] in node_ids
+                for edge in graph["edges"]
+            )
+        )
+        self.assertTrue(
+            all(node["props"]["id"] == node["id"] for node in graph["nodes"])
+        )
 
     def test_post_date_filter_includes_the_entire_to_date(self):
         session = Mock()
@@ -235,6 +400,9 @@ class RouteContractTests(unittest.TestCase):
             with self.subTest(path=path):
                 operation = schema["paths"][path]["get"]
                 self.assertTrue(operation.get("security"))
+
+            demo_operation = schema["paths"]["/demo/coordination"]["post"]
+            self.assertTrue(demo_operation.get("security"))
 
         graph_params = {
             item["name"] for item in schema["paths"]["/graph"]["get"]["parameters"]

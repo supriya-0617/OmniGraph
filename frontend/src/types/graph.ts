@@ -32,6 +32,16 @@ export interface GraphData {
   edges: GraphEdge[];
 }
 
+export interface GraphHighlight {
+  originNodeId?: string | null;
+  evidenceNodeIds: string[];
+}
+
+export interface AiEvidenceResponse {
+  likely_origin_node_id?: string | null;
+  evidence_node_ids: string[];
+}
+
 export interface FilterState {
   dateFrom: string;
   dateTo: string;

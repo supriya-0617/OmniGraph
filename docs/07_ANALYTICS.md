@@ -2,79 +2,70 @@
 
 ## 1. Purpose
 
-The authenticated dashboard combines a filtered graph with API-backed KPIs, daily post activity, hashtag counts, and suspected coordinated-cluster results. The dashboard reads one shared `FilterContext`; it does not maintain a separate analytics filter state.
-
-The GraphRAG panel is currently a non-functional planned feature. No `/ai/query` route is registered, and the dashboard does not send filters or questions to an AI service.
+The dashboard combines KPIs, a ranked coordination table, the investigation workspace (graph + AI analyst) and supporting charts. Every panel reads the single `FilterContext`; there is no separate analytics filter state.
 
 ## 2. Filters
 
-| Filter | API query parameter | Current meaning |
+| Filter | Query param | Meaning |
 |---|---|---|
-| Date range | `from`, `to` | Inclusive UTC calendar dates applied to post timestamps. The dashboard rejects an inverted range before making requests. |
-| Severity / threat level | `min_severity` | Minimum post severity, from 0 to 1. |
-| Platform | `platform` | Exact post platform; `ALL` is normalized by the backend to no platform restriction. |
-| Interaction density | `min_density` | Minimum distinct users in a coordination group sharing an IP and hashtag within a one-hour window; integer range 1–10. This is not edges per node. |
+| Date range | `from`, `to` | Inclusive UTC days applied to post timestamps. An inverted range is rejected client-side (and `422` server-side). Omitted values mean unbounded. |
+| Severity | `min_severity` | Minimum post severity 0–1. |
+| Platform | `platform` | Exact platform; `ALL` = no restriction. |
+| Density | `min_density` | Minimum distinct accounts in a coordination group (shared IP + shared hashtag within 60 minutes), 1–10. |
 
-The API service sends the same filter snapshot, parameter names, and formats to `GET /graph`, `GET /analytics/summary`, and `GET /analytics/clusters`. Date, platform, and severity predicates combine with AND semantics in backend post matching.
+**Density is applied consistently.** When `min_density > 1`, the graph, the cluster table *and every summary aggregate* are restricted to posts inside qualifying clusters, and the summary returns `density_scoped: true` (shown as a "Density-scoped" badge). This resolves the inconsistency noted in the previous revision.
 
-**Known density inconsistency (unresolved):** The graph route restricts posts to qualifying groups when `min_density > 1`; the clusters route returns only qualifying groups; the summary route applies density to `coordinated_clusters` but calculates its other aggregates from all posts matching date, platform, and severity. At elevated density thresholds, the graph, clusters, summary KPIs, and charts therefore do not all describe the same population. This needs a backend-owner decision and correction; it is not fixed in the frontend.
+## 3. KPIs (`GET /analytics/summary`)
 
-The graph is also bounded to at most 120 matching posts. Analytics summary queries use the full matching post set (subject to the density inconsistency above).
+| Card | Field | Definition | Trend colour |
+|---|---|---|---|
+| Posts in filter | `total_posts` (+ `total_accounts`, `high_severity_posts` in the caption) | Posts matching the filters | neutral |
+| Flagged accounts | `total_flagged_users` | Distinct flagged users who posted or retweeted a matching post | increase = crimson |
+| Coordinated clusters | `coordinated_clusters` | Rows returned by `/analytics/clusters` | increase = crimson |
+| Average severity | `avg_severity` | Mean post severity, shown as % | increase = crimson |
 
-## 3. Metrics / KPIs
+**Trends** — when both `from` and `to` are set, the API also computes the same metrics for the immediately preceding window of equal length and returns `trends.<metric> = { previous, delta_pct }` (`delta_pct` is `null` when the previous value is 0). Without a closed date range `trends` is `null`.
 
-`GET /analytics/summary` supplies the dashboard values directly:
+## 4. Charts
 
-| Dashboard metric | API field | Meaning |
+All chart colours come from `components/dashboard/charts/chartTheme.ts` and were **validated** (lightness band, chroma floor, colour-blind separation, contrast) against the panel surface `#20241F` (dark mode). The UI accents are deliberately desaturated (below the data-mark chroma floor), so marks use slightly richer steps of the same hue families: platforms X `#518AC4` (steel) · Telegram `#B68737` (brass) · Facebook `#AA6A9C` (mauve); posts `#518AC4` vs high-severity `#C25D58`; severity ramp `#84473E → #EE9186` (single crimson hue, ordinal-validated). UI accent colours are reserved for chrome. Every chart has a Chart/Table toggle (accessible table view), tooltips, empty states, initial skeletons, and dims instead of flashing on refetch.
+
+| Component | Data | Form |
 |---|---|---|
-| Total Posts In Filter | `total_posts` | Count of posts matching date, platform, and severity filters. |
-| Flagged Users | `total_flagged_users` | Distinct flagged users connected to matching posts. |
-| Coordinated Clusters | `coordinated_clusters` | Number of coordination clusters returned for the requested `min_density`. |
-| Avg Threat Severity | `avg_severity` | Average post severity, shown as a percentage. This is an additional dashboard KPI. |
+| `PostsOverTimeChart` | `posts_over_time[] {bucket, count, high_severity}` | Area (all posts) + line (severity ≥ 0.7) on **one** y-axis; legend; peak badge |
+| `HashtagBarChart` | `top_hashtags[] {tag, count}` (distinct posts, top 10) | Ranked horizontal bars, one colour, value labels |
+| `SignalMixPanel` | `platform_breakdown[]`, `severity_distribution[]` (5 bins) | Segmented part-to-whole bar (colour follows the platform, never its rank) + histogram on a single-hue ordinal ramp |
+| `ClusterTable` | `/analytics/clusters` | Sortable ranked table (below) |
 
-Zero counts and zero average severity are shown as zero. Centrality metrics are not currently provided by the analytics API or displayed as dashboard KPIs.
+## 5. Coordination clusters (`GET /analytics/clusters`)
 
-## 4. Charts and cluster table
+A cluster is an (IP, hashtag) group of accounts where at least one pair posted that hashtag within 60 minutes (Cypher in `04_GRAPH_SCHEMA.md` §5). Each row:
 
-### Posts over time
+`id, ip_id, cluster_ip, network_type, hashtag, user_ids, user_handles, flagged_users, post_ids, platforms, first_seen, last_seen, time_window_minutes, avg_severity, risk_factors, risk_score`
 
-- Source: `posts_over_time[]` entries with `bucket` (ISO date string, daily buckets) and `count` (post count).
-- Rendered as a responsive Recharts area chart with date and post-count axes and a date/count tooltip.
-- Invalid bucket strings are displayed as supplied rather than converted into a misleading date.
-- An empty array displays a no-posts message; API failure displays an unavailable state.
+### Risk score
 
-### Top hashtags
+An explainable weighted sum, each factor normalised to [0, 1]:
 
-- Source: `top_hashtags[]` entries with `tag` and `count` (distinct posts mentioning the tag).
-- Rendered as a responsive horizontal Recharts bar chart; the UI sorts a copy by count and does not change the API data.
-- The axis identifies post counts. Long ticks are shortened for layout, while the tooltip and summary chips retain the complete tag.
-- An empty array displays a no-activity message; API failure displays an unavailable state.
+| Factor | Weight | Definition |
+|---|---|---|
+| size | 0.30 | `min(accounts, 8) / 8` |
+| severity | 0.25 | mean post severity |
+| tempo | 0.20 | `1 − min(window_minutes, 60) / 60` (tighter bursts score higher) |
+| infrastructure | 0.15 | datacenter 1.0 · vpn/proxy 0.9 · unknown 0.5 · residential 0.3 · corporate/university 0.1 |
+| duplication | 0.10 | share of posts whose word set overlaps ≥ 60 % with another post in the cluster |
 
-### Coordinated clusters
+Tiers shown with a text label (never colour alone): **Critical** ≥ 0.75, **High** ≥ 0.6, **Elevated** ≥ 0.4, **Low** < 0.4. The score is a ranking heuristic, **not a probability** of malicious intent; per-factor values are shown on hover in the table. On the simulated dataset the six campaigns score 0.57–0.86 and the benign campus-NAT group scores 0.24.
 
-`GET /analytics/clusters` returns rows containing `id`, `cluster_ip`, `user_ids`, `user_handles`, `post_ids`, `hashtag`, `time_window_minutes`, and `risk_score`. The table displays:
+### Table actions
 
-- Cluster identifier and shared IP address.
-- User count derived from `user_ids.length`, plus handles when present.
-- Associated hashtag.
-- Time window in minutes and the number/list of post IDs.
-- Backend-provided risk score, sorted descending; the frontend does not recalculate it.
-- A “View in Graph” action, which highlights the first listed user ID or, if absent, the first post ID when that node exists in the graph.
+* **Graph** — highlights the cluster's IP, accounts and posts in Cytoscape (others fade), sets it as the AI focus, scrolls to the workspace.
+* **Ask AI** — sets the focus and immediately asks the analyst why the cluster is suspicious and who seeded it.
 
-The current response does not include per-cluster post severity, timestamps, or post text; the table does not invent these values. Missing optional fields render safely as unavailable. On narrow screens, the table scrolls within its own container.
+## 6. Loading, empty, error states
 
-The backend risk score is:
+Initial load shows skeletons; refreshes dim the previous render. Any failed request clears all panels and shows an error banner with **Retry** (stale values are never presented as current). A `401` anywhere signs the analyst out with a "session expired" notice. Empty responses show explicit zero/"no data" states.
 
-`min(1, 0.25 + 0.1 * min(user_count, 5) + 0.25 * average_post_severity)`
+## 7. Tests
 
-This bounded score is a ranking heuristic, **not a calibrated probability**. The UI displays the returned decimal score and labels this limitation.
-
-### Loading, empty, and error states
-
-Initial fetches show section-level loading indicators. Filter refreshes show updating indicators. A successful response replaces prior results; an empty response shows explicit zero/no-results states. Invalid dates skip requests and clear results. If any of the graph, summary, or cluster requests fails, the dashboard clears its prior results and displays an error rather than presenting stale values as current. Outdated or aborted requests cannot replace newer results.
-
-## 5. Interaction with the AI panel
-
-The dashboard currently renders a collapsible GraphRAG placeholder that explicitly says AI analysis is planned and inactive. No AI endpoint/router is present in the backend, and the frontend does not submit a question, pass filters to an AI service, render evidence, or highlight AI-selected evidence. The existing `llm_client.py` is an adapter stub with canned static output; it is not a live model integration and must not be presented as one.
-
-To complete this workflow, the backend owner must implement and register an authenticated `/ai/query` contract that accepts the current filter state and question, performs real graph extraction/model inference, and returns validated evidence IDs. Frontend integration and evidence highlighting can follow once that contract exists.
+`backend/test_analytics.py`: schema validation, date / severity / platform / density filtering, empty results, previous-period trends, ranking order, six campaigns detected, benign NAT ranked last, risk-formula bounds.
